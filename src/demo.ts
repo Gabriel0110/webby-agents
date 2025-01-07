@@ -4,6 +4,11 @@ import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "./memory";
 import { OpenAIChat, OpenAIEmbeddings } from "./LLMs";
 import { DuckDuckGoTool } from "./tools/DuckDuckGoTool";
 
+// import { Agent, AgentOptions } from "webby-agent";
+// import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "webby-agent/memory";
+// import { OpenAIChat, OpenAIEmbeddings } from "webby-agent/LLMs";
+// import { DuckDuckGoTool } from "webby-agent/tools";
+
 async function main() {
 
   // 1) Create LLM

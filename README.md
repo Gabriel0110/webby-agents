@@ -1,3 +1,5 @@
+![Webby Agent](webby-agent.webp)
+
 # Webby-Agent Framework
 
 A **super simple yet extensible** TypeScript/Node.js framework for building AI-powered agents with memory, tool usage (e.g. web search), and multi-step reasoning. This project provides the core building blocks needed to integrate Large Language Models (LLMs) into your web or Node.js applications and empower them with “agentic” capabilities.
@@ -46,8 +48,6 @@ yarn add webby-agent
 
 ## Project Structure
 
-Here’s the **recommended** structure:
-
 ```
 webby-agent/
 ├── package.json
@@ -70,7 +70,7 @@ webby-agent/
 │   └── tools/
 │       ├── Tool.ts
 │       └── DuckDuckGoTool.ts
-└── ...
+
 ```
 
 - **Agent.ts**: The main class orchestrating multi-step reasoning and tool usage.  
@@ -109,9 +109,9 @@ By default, the framework will look for the API key in the environment variable.
 
 ```ts
 import 'dotenv/config';
-import { Agent, AgentOptions } from "./Agent";
-import { ShortTermMemory } from "./memory";
-import { OpenAIChat } from "./LLMs";
+import { Agent, AgentOptions } from "webby-agent/Agent";
+import { ShortTermMemory } from "webby-agent/memory";
+import { OpenAIChat } from "webby-agent/LLMs";
 
 async function basicAgent() {
 
@@ -151,10 +151,10 @@ async function basicAgent() {
 
 ```ts
 import 'dotenv/config';
-import { Agent, AgentOptions } from "./Agent";
-import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "./memory";
-import { OpenAIChat, OpenAIEmbeddings } from "./LLMs";
-import { DuckDuckGoTool } from "./tools/DuckDuckGoTool";
+import { Agent, AgentOptions } from "webby-agent/Agent";
+import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "webby-agent/memory";
+import { OpenAIChat, OpenAIEmbeddings } from "webby-agent/LLMs";
+import { DuckDuckGoTool } from "webby-agent/tools/DuckDuckGoTool";
 
 async function main() {
 

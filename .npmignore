@@ -1,0 +1,32 @@
+# Exclude the source files
+src/
+
+# Exclude environment files
+.env
+
+# Exclude demo and test files
+demo.ts
+*.test.ts
+
+# Exclude TypeScript configuration
+tsconfig.json
+tsconfig.*.json
+
+# Exclude Git-related files
+.gitignore
+
+# Exclude npm debug log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Exclude build lock files
+package-lock.json
+yarn.lock
+
+# Exclude IDE/editor configuration files
+.vscode/
+.idea/
+
+# Exclude other unnecessary files
+.DS_Store
