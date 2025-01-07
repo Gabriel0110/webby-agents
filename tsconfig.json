@@ -1,15 +1,18 @@
 {
-    "compilerOptions": {
-      "target": "ES2019",
-      "module": "CommonJS",
-      "lib": ["ES2019", "DOM"],
-      "outDir": "dist",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true
-    },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "**/__tests__"]
-  }
-  
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "lib": ["ES2019", "DOM"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src/**/*", "src/types.d.ts"],
+  "exclude": ["node_modules", "**/__tests__"]
+}

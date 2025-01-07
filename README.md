@@ -71,6 +71,7 @@ webby-agent/
 │   │   ├── LongTermMemory.ts
 │   │   └── VectorStore.ts
 │   └── tools/
+│       ├── index.ts
 │       ├── Tool.ts
 │       └── DuckDuckGoTool.ts
 
@@ -87,13 +88,7 @@ webby-agent/
 
 ### 0. OpenAI API Key
 
-In order to use the OpenAI integration, you need to have an OpenAI API key set in an environment variable "OPENAI_API_KEY". You can set it in a `.env` file in the root of your project:
-
-```
-OPENAI_API_KEY=your-api-key-here
-```
-
-Though it is ill-advised to hard-code API keys in your code, you can also set it directly when instantiating the OpenAI models:
+In order to use the OpenAI integration, you need to provide your API key. You can do this by passing it to the model constructor:
 
 ```ts
 const model = new OpenAIChat({
@@ -103,7 +98,7 @@ const model = new OpenAIChat({
 });
 ```
 
-By default, the framework will look for the API key in the environment variable.
+Follow best practices for handling API keys in your environment.
 
 
 ### 1. Basic Single Agent
@@ -111,10 +106,7 @@ By default, the framework will look for the API key in the environment variable.
 **Goal**: A single-pass (no reflection) agent that just calls OpenAI once.
 
 ```ts
-import 'dotenv/config';
-import { Agent, AgentOptions } from "webby-agent/Agent";
-import { ShortTermMemory } from "webby-agent/memory";
-import { OpenAIChat } from "webby-agent/LLMs";
+import { Agent, AgentOptions, ShortTermMemory, SummarizingMemory, LongTermMemory, OpenAIChat, OpenAIEmbeddings, DuckDuckGoTool } from "webby-agent";
 
 async function basicAgent() {
 
@@ -153,11 +145,7 @@ async function basicAgent() {
 **Goal**: Use a more long-range memory model and add the DuckDuckGo search tool. Agent options are set to allow multi-step reasoning with safeguards.
 
 ```ts
-import 'dotenv/config';
-import { Agent, AgentOptions } from "webby-agent/Agent";
-import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "webby-agent/memory";
-import { OpenAIChat, OpenAIEmbeddings } from "webby-agent/LLMs";
-import { DuckDuckGoTool } from "webby-agent/tools/DuckDuckGoTool";
+import { Agent, AgentOptions, ShortTermMemory, SummarizingMemory, LongTermMemory, OpenAIChat, OpenAIEmbeddings, DuckDuckGoTool } from "webby-agent";
 
 async function main() {
 

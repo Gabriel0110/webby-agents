@@ -1,18 +1,13 @@
-import 'dotenv/config';
-import { Agent, AgentOptions } from "./Agent";
-import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "./memory";
-import { OpenAIChat, OpenAIEmbeddings } from "./LLMs";
+import { Agent, AgentOptions } from "./Agent.js";
+import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "./memory/index.js";
+import { OpenAIChat, OpenAIEmbeddings } from "./LLMs/index.js";
 import { DuckDuckGoTool } from "./tools/DuckDuckGoTool";
-
-// import { Agent, AgentOptions } from "webby-agent";
-// import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "webby-agent/memory";
-// import { OpenAIChat, OpenAIEmbeddings } from "webby-agent/LLMs";
-// import { DuckDuckGoTool } from "webby-agent/tools";
 
 async function main() {
 
   // 1) Create LLM
   const chatModel = new OpenAIChat({
+    apiKey: "your-api-key",
     model: "gpt-4o-mini",
     temperature: 0.7
   });
@@ -22,6 +17,7 @@ async function main() {
 
   // 2.1) OPTIONAL: Summarizing memory for slightly longer context, summarizing past conversations
   const summarizerModel = new OpenAIChat({
+    apiKey: "your-api-key",
     model: "gpt-4o-mini",
     temperature: 1.0
   });
@@ -35,6 +31,7 @@ async function main() {
 
   // 2.2) OPTIONAL: Long-term memory with embeddings for memory search
   const embeddingsModel = new OpenAIEmbeddings({
+    apiKey: "your-api-key",
     model: "text-embedding-3-small"
   });
 
@@ -81,6 +78,7 @@ async function main() {
 
 async function basicAgent() {
   const model = new OpenAIChat({
+    apiKey: "your-api-key",
     model: "gpt-4o-mini",
     temperature: 0.7
   });

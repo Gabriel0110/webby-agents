@@ -39,3 +39,6 @@ coverage/
 # Optional npm files
 package-lock.json
 yarn.lock
+
+# tgz files
+*.tgz

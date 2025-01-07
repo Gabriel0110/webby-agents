@@ -1,6 +1,4 @@
 import axios from "axios";
-import dotenv from 'dotenv';
-dotenv.config();
 
 /**
  * Options for the OpenAIChat class:
@@ -11,7 +9,7 @@ dotenv.config();
  * - onToken: callback for streaming tokens
  */
 export interface OpenAIChatOptions {
-  apiKey?: string;
+  apiKey: string;
   model?: string;
   temperature?: number;
   stream?: boolean;
@@ -26,14 +24,14 @@ export class OpenAIChat {
   private onToken?: (token: string) => void;
 
   constructor(options: OpenAIChatOptions) {
-    this.apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? "";
+    this.apiKey = options.apiKey;
     this.model = options.model ?? "gpt-4o-mini";
     this.temperature = options.temperature ?? 0.7;
     this.stream = options.stream ?? false;
     this.onToken = options.onToken;
 
     if (!this.apiKey) {
-      throw new Error("Missing OPENAI_API_KEY environment variable. Please set it or provide the apiKey directly in the constructor.");
+      throw new Error("Missing OPENAI_API_KEY to the OpenAIChat constructor. Either pass it in or set it in the environment.");
     }
   }
 

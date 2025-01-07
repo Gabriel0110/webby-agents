@@ -2,7 +2,7 @@
 import axios from "axios";
 
 export interface OpenAIEmbeddingsOptions {
-  apiKey?: string;
+  apiKey: string;
   model?: string;
 }
 
@@ -11,11 +11,11 @@ export class OpenAIEmbeddings {
   private model: string;
 
   constructor(options: OpenAIEmbeddingsOptions) {
-    this.apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? "";
+    this.apiKey = options.apiKey;
     this.model = options.model ?? "text-embedding-3-small";
 
     if (!this.apiKey) {
-      throw new Error("Missing OPENAI_API_KEY environment variable. Please set it or provide the apiKey directly in the constructor.");
+      throw new Error("Missing OPENAI_API_KEY to the OpenAIChat constructor. Either pass it in or set it in the environment.");
     }
   }
 
