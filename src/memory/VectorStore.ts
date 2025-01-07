@@ -12,7 +12,7 @@ export interface VectorStoreItem {
   
   /**
    * Basic in-memory vector store with naive cosine similarity search.
-   * For larger-scale usage, consider a real vector database.
+   * For larger-scale usage, we'd want to have a real vector database.
    */
   export class InMemoryVectorStore {
     private items: VectorStoreItem[] = [];
