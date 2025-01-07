@@ -315,6 +315,16 @@ For generating vector embeddings (e.g., `"text-embedding-3-small"`). Useful for 
 
 ---
 
+## Roadmap
+
+- [ ] Add more tools via available APIs (there's a ton of possibilities)
+- [ ] Implement Transformers.js for local models, including WebGPU-enabled models
+- [ ] Add a basic RAG (Retrieval-Augmented Generation) implementation
+- [ ] Add additional LLM provider API integrations (e.g., Claude, DeepSeek, etc.)
+- [ ] Implement a modular multi-agent orchestration
+
+---
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
