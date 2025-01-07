@@ -28,7 +28,8 @@ A **super simple yet extensible** TypeScript/Node.js framework for building AI-p
 6. [Models](#models)  
 7. [Building & Running](#building--running)  
 8. [FAQ](#faq)  
-9. [License](#license)
+9. [Roadmap](#roadmap)  
+10. [License](#license)
 
 ---
 
