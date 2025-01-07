@@ -219,7 +219,7 @@ async function main() {
   );
 
   // 6) The user’s query that needs fresh data from the web
-  const userQuestion = "What is the weather like today in Dallas, GA 30157?";
+  const userQuestion = "What is the weather like today in San Francisco, CA?";
   console.log("\nUser Question:", userQuestion);
 
   // 7) Let the agent handle the question
