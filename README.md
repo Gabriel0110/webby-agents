@@ -1,4 +1,4 @@
-# My Agent Framework
+# Webby-Agent Framework
 
 A **super simple yet extensible** TypeScript/Node.js framework for building AI-powered agents with memory, tool usage (e.g. web search), and multi-step reasoning. This project provides the core building blocks needed to integrate Large Language Models (LLMs) into your web or Node.js applications and empower them with “agentic” capabilities.
 
@@ -34,10 +34,10 @@ A **super simple yet extensible** TypeScript/Node.js framework for building AI-p
 
 ```bash
 # Using npm:
-npm install my-agent
+npm install webby-agent
 
 # Or using yarn:
-yarn add my-agent
+yarn add webby-agent
 ```
 
 > You need a recent version of Node (>= 18) and TypeScript (>= 4.9).
@@ -49,7 +49,7 @@ yarn add my-agent
 Here’s the **recommended** structure:
 
 ```
-my-agent/
+webby-agent/
 ├── package.json
 ├── tsconfig.json
 ├── src/
@@ -246,6 +246,9 @@ The **`AgentOptions`** interface allows you to customize the agent’s behavior:
 
 ## Memory Classes
 
+### ShortTermMemory
+- **maxMessages**: Maximum number of stored messages.
+
 ### SummarizingMemory
 
 - **threshold**: When the number of stored messages exceeds this, older messages get summarized into one “summary” message.  
@@ -323,4 +326,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 Pull requests are most welcome! For major changes, please open an issue first to discuss.
 
-**Enjoy building AI agents in TypeScript!** Feel free to reach out with any questions or feature requests.
+Feel free to reach out with any questions or feature requests.
