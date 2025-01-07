@@ -292,7 +292,6 @@ For generating vector embeddings (e.g., `"text-embedding-3-small"`). Useful for 
    ```bash
    npm run build
    ```
-   This compiles TypeScript into `dist/`.
 3. **Run** a demo script (e.g., `demo.ts`):
    ```bash
    npx ts-node demo.ts
