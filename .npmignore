@@ -30,3 +30,6 @@ yarn.lock
 
 # Exclude other unnecessary files
 .DS_Store
+
+# .tgz files
+*.tgz

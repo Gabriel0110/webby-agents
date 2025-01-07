@@ -1,6 +1,16 @@
 {
   "name": "webby-agent",
   "version": "0.1.0",
+  "description": "A small, simple, and modular TypeScript-powered agent framework designed for seamless web application integration. Simplify AI-powered tools, web searches, and automation with Webby-Agent.",
+  "keywords": [
+    "agents",
+    "typescript",
+    "web applications",
+    "AI",
+    "OpenAI",
+    "framework",
+    "tool integration"
+  ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -10,6 +20,10 @@
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.ts"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gabriel0110/webby-agent.git"
   },
   "scripts": {
     "build": "npm run build:cjs && npm run build:esm",
