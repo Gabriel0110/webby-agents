@@ -4,7 +4,7 @@
 
 A **super simple yet extensible** TypeScript/Node.js framework for building AI-powered agents with memory, tool usage (e.g. web search), and multi-step reasoning. This project provides the core building blocks needed to integrate Large Language Models (LLMs) into your web or Node.js applications and empower them with “agentic” capabilities.
 
-***[!!] Under Development: This project is still under development and may have some rough edges and bugs. Please report any issues you encounter, and feel free to contribute to the project!***
+***[!!] **Under Development**: This project is still under **early** development and may have some rough edges and bugs. Please report any issues you encounter, and feel free to contribute to the project!***
 
 ## Key Features
 
