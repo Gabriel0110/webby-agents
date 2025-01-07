@@ -29,9 +29,10 @@ A **super simple yet extensible** TypeScript/Node.js framework for building AI-p
 5. [Memory Classes](#memory-classes)  
 6. [Models](#models)  
 7. [Building & Running](#building--running)  
-8. [FAQ](#faq)  
-9. [Roadmap](#roadmap)  
-10. [License](#license)
+8. [Current Tools](#current-tools)  
+9. [FAQ](#faq)  
+10. [Roadmap](#roadmap)  
+11. [License](#license)
 
 ---
 
@@ -303,6 +304,12 @@ For generating vector embeddings (e.g., `"text-embedding-3-small"`). Useful for 
 
 4. **What about streaming partial responses to a UI?**  
    Set `stream = true` in `OpenAIChat` and provide an `onToken` callback. The agent can then display partial tokens as they arrive.
+
+---
+
+## Current Tools
+
+- **`DuckDuckGoTool`**: A simple web search tool that returns the top result for a given query using the **DuckDuckGo Lite API**. ***This is very limited and would be better replaced with a more robust search tool API like SerpAPI.***
 
 ---
 
