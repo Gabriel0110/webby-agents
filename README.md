@@ -247,14 +247,14 @@ The **`AgentOptions`** interface allows you to customize the agent’s behavior:
 ## Memory Classes
 
 ### ShortTermMemory
-- **maxMessages**: Maximum number of stored messages.
+- `maxMessages`: Maximum number of stored messages.
 
 ### SummarizingMemory
 
-- **threshold**: When the number of stored messages exceeds this, older messages get summarized into one “summary” message.  
-- **summarizerModel**: The LLM used for generating summaries.  
-- **summaryPrompt**: Instructions for how to summarize older messages.  
-- **maxSummaryTokens**: (Optional) A guideline for how many tokens the summary should use (not strictly enforced, but helpful context).
+- `threshold`: When the number of stored messages exceeds this, older messages get summarized into one “summary” message.  
+- `summarizerModel`: The LLM used for generating summaries.  
+- `summaryPrompt`: Instructions for how to summarize older messages.  
+- `maxSummaryTokens`: (Optional) A guideline for how many tokens the summary should use (not strictly enforced, but helpful context).
 
 ### LongTermMemory
 
