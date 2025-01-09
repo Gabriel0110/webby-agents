@@ -16,9 +16,9 @@ import { OpenAIChat } from "../../LLMs/OpenAIChat";
 
 async function main() {
   // LLMs
-  const model1 = new OpenAIChat({ apiKey: "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", model: "gpt-4o-mini" });
-  const model2 = new OpenAIChat({ apiKey: "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", model: "gpt-4o-mini" });
-  const aggregatorModel = new OpenAIChat({ apiKey: "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", model: "gpt-4o-mini" });
+  const model1 = new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" });
+  const model2 = new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" });
+  const aggregatorModel = new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" });
 
   // Each agent might have short-term memory
   const agent1Mem = new ShortTermMemory(5);
