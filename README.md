@@ -341,7 +341,7 @@ main().catch(console.error);
 **Key Observations**:
 - ShortTermMemory captures immediate recency, SummarizingMemory condenses older conversation, LongTermMemory performs semantic retrieval.  
 - CompositeMemory merges them all, so the agent has a holistic memory.  
-- By default, the agent tries to append everything, but can be adapted for more advanced usage (see MemoryTool pattern below).
+- By default, the agent tries to append everything, but can be adapted for more advanced usage.
 
 ---
 
