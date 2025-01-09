@@ -686,8 +686,6 @@ Then, include `AgentCallStep` in your workflow steps array if you want “one st
 
 Beyond the standard usage patterns (single-pass Agents, Workflows, multi-tool or multi-agent orchestration), **webby-agents** supports more advanced scenarios that can significantly expand agent capabilities. Below are additional patterns and tips for **self-reflection**, **multi-agent synergy**, **error-safe runs**, and more.
 
----
-
 ### Reflection Memory
 
 **What is it?**  
