@@ -9,7 +9,6 @@ class FakeSearchTool implements Tool {
   description = "Simulates a search engine lookup (dummy).";
 
   async run(input: string): Promise<string> {
-    // This is just a stubbed implementation
     return `FAKE SEARCH RESULTS for "${input}" (no real search done).`;
   }
 }
@@ -45,6 +44,7 @@ async function main() {
     usageLimit: 5,
     timeToLive: 60000,
     useReflection: true,
+    debug: true,
   };
 
   // 5) Create Agent with multiple tools
@@ -54,10 +54,12 @@ async function main() {
     memory: mem,
     tools: [searchTool, translatorTool],
     instructions: [
-      "You can use FakeSearch to look up information. Output exactly TOOL REQUEST if you need it.",
-      "You can use FakeTranslator to convert text to French."
+        "You can use FakeSearch to look up information.",
+        "You can use FakeTranslator to convert text to French.",
+        "Use tools by responding EXACTLY in the format: TOOL REQUEST: <ToolName> \"<Query>\"",
+        "Integrate tool results before proceeding to the next step.",
     ],
-    options
+    options,
   });
 
   // 6) User question

@@ -206,8 +206,14 @@ export class Agent {
           return answer;
         }
 
-        // Treat as final answer if no special format
-        return llmOutput;
+        // // Treat as final answer if no special format
+        // return llmOutput;
+
+        // Integrate intermediate reasoning
+        await this.memory.addMessage({
+          role: "assistant",
+          content: llmOutput,
+        });
       }
     } catch (error) {
       this.logger.error('Agent run failed', error);
@@ -277,53 +283,56 @@ export class Agent {
   }  
 
   /**
-   * Handle tool requests
+   * Handle tool requests and ensure results are integrated into memory and context.
    */
   protected async handleToolRequest(request: ParsedToolRequest): Promise<string> {
-    this.logger.log('Processing tool request', request);
-  
+    this.logger.log("Processing tool request", request);
+
     try {
       // 1) Basic validation
-      ToolRequestParser.validateBasic(request, this.tools);
-  
+      const validationError = ToolRequestParser.validateBasic(request, this.tools);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
       // 2) Find the referenced tool
       const tool = this.tools.find(
         (t) => t.name.toLowerCase() === request.toolName.toLowerCase()
       )!;
-  
-      // 3) Parameter-level validation
       ToolRequestParser.validateParameters(tool, request);
-  
-      // 4) Hook for final user approval
+
+      // 3) Hook for final user approval
       if (this.hooks.onToolCall) {
         const proceed = await this.hooks.onToolCall(tool.name, request.query);
         if (!proceed) {
-          this.logger.log('Tool call cancelled by hook', { toolName: tool.name });
-          return `Tool call to "${tool.name}" cancelled by hook.`;
+          this.logger.log("Tool call cancelled by hook", { toolName: tool.name });
+          return `Tool call to "${tool.name}" cancelled by user approval.`;
         }
       }
-  
-      // 5) Run the tool
-      let result: string;
-      if (request.args) {
-        // If we have structured args, pass them as second param
-        result = await tool.run("", request.args);
-      } else {
-        // If we only have a simple query string
-        result = await tool.run(request.query);
-      }
-  
-      // 6) onToolResult hook
+
+      // 4) Run the tool
+      const result = request.args
+        ? await tool.run("", request.args)
+        : await tool.run(request.query);
+
+      this.logger.log("Tool execution result", { toolName: tool.name, result });
+
+      // 5) Add result to memory
+      await this.memory.addMessage({
+        role: "assistant",
+        content: `Tool result for "${tool.name}":\n${result}`,
+      });
+
+      // 6) Hook for post-tool results
       if (this.hooks.onToolResult) {
         await this.hooks.onToolResult(tool.name, result);
       }
+
       return result;
-  
     } catch (err) {
-      // If it's a ToolError or some other error
       const errorMsg = (err as Error).message;
-      this.logger.error('Tool request failed', { error: errorMsg });
-      return `Error: ${errorMsg}`;
+      this.logger.error("Tool request failed", { error: errorMsg });
+      return `Error processing tool request: ${errorMsg}`;
     }
   }
 
