@@ -195,6 +195,10 @@ export class Agent {
         if (llmOutput.startsWith('FINAL ANSWER:')) {
           const answer = llmOutput.replace('FINAL ANSWER:', '').trim();
           this.logger.log('Final answer found', { answer });
+        
+          // Add FINAL ANSWER to memory
+          await this.memory.addMessage({ role: "assistant", content: llmOutput });
+        
           if (this.hooks.onFinalAnswer) {
             await this.hooks.onFinalAnswer(answer);
           }

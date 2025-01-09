@@ -4,14 +4,11 @@ import { OpenAIChat } from "../LLMs/OpenAIChat";
 import { ConversationMessage } from "../memory/Memory";
 
 export interface EvaluationResult {
-  score: number;      // e.g. 0-1
-  feedback: string;   // textual feedback
-  improvements?: string; // optional or required improvements
+  score: number;      // e.g., 0-1
+  feedback: string;   // Detailed feedback
+  improvements?: string; // Suggested improvements
 }
 
-/**
- * A trivial "evaluator" that calls an LLM to critique the last assistant message.
- */
 export class SimpleEvaluator {
   private model: OpenAIChat;
 
@@ -19,30 +16,63 @@ export class SimpleEvaluator {
     this.model = model;
   }
 
+  /**
+   * Evaluates the last assistant response in the conversation memory.
+   * @param messages Conversation history.
+   * @returns EvaluationResult with score, feedback, and improvements.
+   */
   public async evaluate(messages: ConversationMessage[]): Promise<EvaluationResult> {
-    const lastAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant");
+    console.log("[SimpleEvaluator] Retrieved messages for evaluation:", messages);
+
+    // Identify the last assistant message with "FINAL ANSWER:"
+    const lastAssistantMsg = [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant" && m.content.startsWith("FINAL ANSWER:"));
+
     if (!lastAssistantMsg) {
-      return { score: 0, feedback: "No assistant response to evaluate." };
+      console.warn("[SimpleEvaluator] No valid assistant message found to evaluate.");
+      return {
+        score: 0,
+        feedback: "No valid assistant response found to evaluate.",
+        improvements: "Ensure the assistant provides a response to the user query.",
+      };
     }
 
+    const assistantResponse = lastAssistantMsg.content.replace("FINAL ANSWER:", "").trim();
+
     const prompt = [
-      { role: "system", content: "You are an AI that critiques assistant answers." },
+      { role: "system", content: "You are an AI evaluator that critiques assistant responses." },
       {
         role: "user",
-        content: `Assistant answered: "${lastAssistantMsg.content}"\nPlease provide:\n- A numeric score (0-1)\n- Detailed feedback\n- Suggested improvements.`,
+        content: `Evaluate the following assistant response:
+
+"${assistantResponse}"
+
+Please provide:
+1. A numeric score (0-1) assessing the quality and relevance of the response.
+2. Detailed feedback about what the response did well or poorly.
+3. Suggestions for improvements.
+
+Structure your response as follows:
+Score: <numeric value>
+Feedback: <detailed feedback>
+Improvements: <suggested improvements>`,
       },
     ];
 
     const evalResponse = await this.model.call(prompt);
 
-    const scoreMatch = evalResponse.match(/Score:\s?([\d.]+)/i);
-    const feedbackMatch = evalResponse.match(/Feedback:\s?([\s\S]+)/i);
-    const improvementsMatch = evalResponse.match(/Improvements:\s?([\s\S]+)/i);
+    console.log("[SimpleEvaluator] Raw evaluation response:", evalResponse);
+
+    // Parse evaluation results
+    const scoreMatch = evalResponse.match(/Score:\s*([\d.]+)/i);
+    const feedbackMatch = evalResponse.match(/Feedback:\s*([\s\S]+?)Improvements:/i);
+    const improvementsMatch = evalResponse.match(/Improvements:\s*([\s\S]+)/i);
 
     return {
       score: scoreMatch ? parseFloat(scoreMatch[1]) : 0,
-      feedback: feedbackMatch ? feedbackMatch[1].trim() : "No feedback.",
-      improvements: improvementsMatch ? improvementsMatch[1].trim() : "No suggestions.",
+      feedback: feedbackMatch ? feedbackMatch[1].trim() : "No feedback provided.",
+      improvements: improvementsMatch ? improvementsMatch[1].trim() : "No improvements suggested.",
     };
   }
 }

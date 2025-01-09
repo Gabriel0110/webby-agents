@@ -20,7 +20,7 @@ import { CompositeMemory } from "../memory/CompositeMemory";
 async function main() {
   // 1) Create the main model
   const chatModel = new OpenAIChat({
-    apiKey: "YOUR_API_KEY",
+    apiKey: "YOUR-API-KEY",
     model: "gpt-4o-mini",
     temperature: 0.7,
   });

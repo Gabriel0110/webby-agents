@@ -4,10 +4,10 @@ import { ShortTermMemory } from "../memory/ShortTermMemory";
 import { OpenAIChat } from "../LLMs/OpenAIChat";
 
 async function main() {
-  // 1) Create a model
+  // 1) Create a model for the agent
   const agentModel = new OpenAIChat({
-    apiKey: "YOUR_API_KEY",
-    model: "gpt-4o-mini"
+    apiKey: "YOUR-API-KEY",
+    model: "gpt-4o-mini",
   });
 
   // 2) Create memory
@@ -18,28 +18,32 @@ async function main() {
     name: "EvaluatedAgent",
     model: agentModel,
     memory,
-    instructions: ["Provide a thorough but concise answer."],
-    options: { maxSteps: 3, usageLimit: 5, useReflection: true }
+    instructions: ["Provide a concise but detailed explanation."],
+    options: { maxSteps: 3, usageLimit: 5, useReflection: true, debug: true},
   });
 
-  // 4) SimpleEvaluator (for critique)
+  // 4) Create a model for the evaluator
   const evalModel = new OpenAIChat({
-    apiKey: "YOUR_API_KEY",
-    model: "gpt-4o-mini"
+    apiKey: "YOUR-API-KEY",
+    model: "gpt-4o-mini",
   });
+
   const evaluator = new SimpleEvaluator(evalModel);
 
-  // 5) Run agent
-  const userQuestion = "Explain the difference between a supervised and unsupervised learning algorithm.";
+  // 5) Run the agent
+  const userQuestion = "Explain the difference between supervised and unsupervised learning algorithms.";
   const answer = await agent.run(userQuestion);
 
   console.log("\nAgent's Final Answer:\n", answer);
 
-  // 6) Evaluate final answer
+  // 6) Evaluate the final answer
   const messages = await memory.getContext();
   const result = await evaluator.evaluate(messages);
 
-  console.log("\nEvaluation Result:\nScore:", result.score, "\nFeedback:", result.feedback, "\nImprovements:", result.improvements);
+  console.log("\nEvaluation Result:");
+  console.log("Score:", result.score);
+  console.log("Feedback:", result.feedback);
+  console.log("Improvements:", result.improvements);
 }
 
 main().catch(console.error);
