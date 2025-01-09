@@ -927,6 +927,7 @@ npx ts-node src/examples/basic_agent.ts
 - **More External Tools**  (e.g., Firecrawl, SerpAPI, etc.)  
 - **Browser Vision Tools** (image recognition, OCR, etc.)  
 - **Multi-step self-correction** (auto re-try if evaluator score < threshold)  
+- **Improved Observability** (agent API metrics, logging, and tracing - dedicated files and possibly a dashboard)
 
 ---
 
