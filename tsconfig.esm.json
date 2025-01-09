@@ -1,5 +1,4 @@
 // tsconfig.esm.json
-
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
