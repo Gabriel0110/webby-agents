@@ -1,4 +1,4 @@
-import { Agent } from "../Agent";
+import { Agent } from "../agents/Agent";
 import { ShortTermMemory } from "../memory/ShortTermMemory";
 import { OpenAIChat } from "../LLMs/OpenAIChat";
 import { Tool } from "../tools/Tools";

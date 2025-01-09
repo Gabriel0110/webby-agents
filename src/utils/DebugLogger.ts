@@ -29,6 +29,16 @@ export interface DebugStats {
       console.error(`[${new Date().toISOString()}] ERROR: ${message}`);
       if (error) console.error(error);
     }
+
+    logStep(step: { action: string; details: string }, attempt: number) {
+      if (!this.enabled) return;
+      console.log(`[${new Date().toISOString()}] Executing step (Attempt ${attempt}):`, step);
+    }
+    
+    logRetry(reason: string, attempt: number, maxRetries: number) {
+      if (!this.enabled) return;
+      console.warn(`[${new Date().toISOString()}] Retry ${attempt}/${maxRetries} due to: ${reason}`);
+    }
   
     stats(stats: DebugStats) {
       if (!this.enabled) return;

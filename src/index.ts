@@ -1,5 +1,5 @@
 // src/index.ts
-export * from "./Agent";
+export * from "./agents/Agent";
 export * from "./Workflow";
 export * from "./Planner";
 

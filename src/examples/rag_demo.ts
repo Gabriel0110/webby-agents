@@ -1,4 +1,4 @@
-import { Agent, AgentOptions } from "../Agent";
+import { Agent, AgentOptions } from "../agents/Agent";
 import { CompositeMemory } from "../memory/CompositeMemory";
 import { ShortTermMemory } from "../memory/ShortTermMemory";
 import { SummarizingMemory } from "../memory/SummarizingMemory";

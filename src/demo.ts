@@ -1,5 +1,5 @@
 // src/demo.ts
-import { Agent, AgentOptions } from "./Agent";
+import { Agent, AgentOptions } from "./agents/Agent";
 import { ShortTermMemory, SummarizingMemory, LongTermMemory, CompositeMemory } from "./memory/index";
 import { OpenAIChat, OpenAIEmbeddings } from "./LLMs/index";
 import { DuckDuckGoTool } from "./tools/DuckDuckGoTool";

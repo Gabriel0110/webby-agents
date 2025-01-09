@@ -1,12 +1,13 @@
 // src/Agent.ts
 
-import { OpenAIChat } from "./LLMs/OpenAIChat";
-import { Memory } from "./memory/Memory";
-import { Tool } from "./tools/Tools";
-import { Planner } from "./Planner";
-import { ConversationMessage } from "./memory/Memory";
-import { ToolRequestParser, ParsedToolRequest } from './tools/ToolRequest';
-import { DebugLogger } from './utils/DebugLogger';
+import { OpenAIChat } from "../LLMs/OpenAIChat";
+import { Memory, MemoryRole } from "../memory/Memory";
+import { ReflectionMemory } from "../memory/ReflectionMemory";
+import { Tool } from "../tools/Tools";
+import { Planner } from "../Planner";
+import { ConversationMessage } from "../memory/Memory";
+import { ToolRequestParser, ParsedToolRequest } from '../tools/ToolRequest';
+import { DebugLogger } from '../utils/DebugLogger';
 
 /**
  * Options to configure agent behavior and safety checks.
@@ -25,8 +26,8 @@ export interface AgentOptions {
 export interface AgentHooks {
   onPlanGenerated?: (plan: string) => void;
   onToolCall?: (toolName: string, query: string) => Promise<boolean> | boolean;
-  onToolValidationError?: (toolName: string, errorMsg: string) => void; // NEW
-  onToolResult?: (toolName: string, result: string) => void;            // NEW
+  onToolValidationError?: (toolName: string, errorMsg: string) => void;
+  onToolResult?: (toolName: string, result: string) => void;
   onFinalAnswer?: (answer: string) => void;
   onStep?: (messages: ConversationMessage[]) => void;
 }
@@ -35,7 +36,7 @@ export interface AgentHooks {
  * The main Agent class that can do multi-step reasoning, tool usage, etc.
  */
 export class Agent {
-  public name: string;                  // Agent name, optional
+  public name: string;
   protected model: OpenAIChat;
   protected memory: Memory;
   protected tools: Tool[];
@@ -263,9 +264,9 @@ export class Agent {
     return [
       `You are an intelligent AI agent named "${this.name}".`,
       toolLines.length
-        ? `You have access to these tools:\n${toolLines}\n`
-        : "",
-      `When you want to use a tool, format your response EXACTLY:\nTOOL REQUEST: <ToolName> "<Query>"\nExample: TOOL REQUEST: MyCalculator "123+456"`,
+        ? `You have access to these tools:\n${toolLines}\n` +
+          `When you want to use a tool, format your response EXACTLY:\nTOOL REQUEST: <ToolName> "<Query>"\nExample: TOOL REQUEST: MyCalculator "123+456"`
+        : `You do not have access to any tools. Do not attempt to use any tools.`,
       `If your response does not follow this format exactly, it will be ignored.`,
       "When providing a final answer, format EXACTLY:\nFINAL ANSWER: <Your answer>",
       `If no special format is recognized, your entire response is considered the final answer.`,
@@ -273,7 +274,7 @@ export class Agent {
     ]
       .filter(Boolean)
       .join("\n\n");
-  }
+  }  
 
   /**
    * Handle tool requests
@@ -329,7 +330,7 @@ export class Agent {
   /**
    * Parse plan into steps
    */
-  private parsePlan(plan: string): Array<{ action: string; details: string }> {
+  protected parsePlan(plan: string): Array<{ action: string; details: string }> {
     try {
       return JSON.parse(plan);
     } catch (err) {
@@ -340,7 +341,7 @@ export class Agent {
   /**
    * Execute a single plan step
    */
-  private async executePlanStep(
+  protected async executePlanStep(
     step: { action: string; details: string }, 
     query: string
   ): Promise<string> {
@@ -382,5 +383,18 @@ export class Agent {
       return `Time limit (${this.timeToLive}ms) reached after ${elapsed}ms.`;
     }
     return 'Unknown stopping condition reached.';
+  }
+
+  protected async handleReflection(reflectionContent: string): Promise<void> {
+    const reflectionMessage: ConversationMessage = { 
+      role: "reflection" as MemoryRole,
+      content: reflectionContent 
+    };
+
+    if (this.memory instanceof ReflectionMemory) {
+      await this.memory.addMessage(reflectionMessage);
+    }
+
+    this.logger.log(`Reflection stored: ${reflectionContent}`);
   }
 }

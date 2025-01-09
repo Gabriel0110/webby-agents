@@ -62,22 +62,22 @@ export class ToolRequestParser {
   /**
    * Validates that the request references an available tool and has minimal required fields.
    */
-  static validateBasic(request: ParsedToolRequest, availableTools: Tool[]): void {
-    if (!request.toolName) {
-      throw new ToolError("<Unknown>", "Tool name is required.");
+  static validateBasic(request: ParsedToolRequest, tools: Tool[]): string | null {
+    if (!request.toolName || !request.query) {
+      return "Invalid tool request format.";
     }
-    // If we have no query or no args, that might be permissible or not:
-    if (!request.query && !request.args) {
-      throw new ToolError(request.toolName, "Either a string query or JSON args are required.");
+  
+    if (tools.length === 0) {
+      return `No tools are available, but a tool request was made: "${request.toolName}".`;
     }
-
-    const tool = availableTools.find(
-      (t) => t.name.toLowerCase() === request.toolName.toLowerCase()
-    );
+  
+    const tool = tools.find((t) => t.name.toLowerCase() === request.toolName.toLowerCase());
     if (!tool) {
-      throw new ToolError(request.toolName, `Tool "${request.toolName}" not found among available tools.`);
+      return `Tool "${request.toolName}" is not available.`;
     }
-  }
+  
+    return null; // Valid request
+  }  
 
   /**
    * Enhanced parameter validation if the tool supports parameters.

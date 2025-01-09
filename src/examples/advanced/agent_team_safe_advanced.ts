@@ -10,7 +10,7 @@
  *   - Optional aggregator logic if you want a final step
  */
 
-import { Agent } from "../../Agent";
+import { Agent } from "../../agents/Agent";
 import { AgentTeam } from "../../multi-agent/AgentTeam";
 import { ShortTermMemory } from "../../memory/ShortTermMemory";
 import { OpenAIChat } from "../../LLMs/OpenAIChat";
@@ -24,17 +24,17 @@ class SafeAgentTeam extends AgentTeam {
 async function main() {
   // 1) Create LLM(s)
   const model1 = new OpenAIChat({
-    apiKey: "YOUR_KEY",
+    apiKey: "YOUR-API-KEY",
     model: "gpt-4o-mini",
     temperature: 0.7,
   });
   const model2 = new OpenAIChat({
-    apiKey: "YOUR_KEY",
+    apiKey: "YOUR-API-KEY",
     model: "gpt-4o-mini",
     temperature: 0.7,
   });
   const model3 = new OpenAIChat({
-    apiKey: "YOUR_KEY",
+    apiKey: "YOUR-API-KEY",
     model: "gpt-4o-mini",
     temperature: 0.7,
   });

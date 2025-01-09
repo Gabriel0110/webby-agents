@@ -1,6 +1,6 @@
 // src/examples/agent_subteam_routing.ts
 
-import { Agent } from "../../Agent";
+import { Agent } from "../../agents/Agent";
 import { AgentTeam } from "../../multi-agent/AgentTeam";
 import { AgentRouter } from "../../multi-agent/AgentRouter";
 import { ShortTermMemory } from "../../memory/ShortTermMemory";

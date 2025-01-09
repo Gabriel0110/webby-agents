@@ -1,6 +1,6 @@
 // src/examples/tool_parameter_demo.ts
 
-import { Agent } from "../Agent";
+import { Agent } from "../agents/Agent";
 import { ShortTermMemory } from "../memory/ShortTermMemory";
 import { OpenAIChat } from "../LLMs/OpenAIChat";
 import { DemoWeatherTool } from "../tools/DemoWeatherTool";

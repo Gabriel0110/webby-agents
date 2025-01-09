@@ -1,6 +1,6 @@
 // src/multi-agent/AdvancedAgentTeam.ts
 
-import { Agent } from "../Agent";
+import { Agent } from "../agents/Agent";
 import { Memory } from "../memory/Memory";
 import { AgentTeam } from "./AgentTeam";
 
@@ -21,6 +21,19 @@ export class AdvancedAgentTeam extends AgentTeam {
     super(name, agents);
     this.sharedMemory = sharedMemory;
   }
+
+  private validateResponse(agentName: string, response: string, role: string): boolean {
+    if (role === "numerical" && response.toLowerCase().includes("history")) {
+      console.warn(`[${agentName}] Response contains invalid content for numerical role.`);
+      return false;
+    }
+    if (role === "historical" && response.toLowerCase().includes("calculation")) {
+      console.warn(`[${agentName}] Response contains invalid content for historical role.`);
+      return false;
+    }
+    return true;
+  }
+  
 
   /**
    * If a sharedMemory is provided, each Agent's memory references 
@@ -49,51 +62,61 @@ export class AdvancedAgentTeam extends AgentTeam {
    * @param userQuery The initial user query or conversation prompt
    * @param maxRounds Safety limit on how many total agent turns
    * @param isConverged A function that checks the last message, returns true if we should stop
+   * @param requireAllAgents If true, we only stop when all agents have contributed
    */
   public async runInterleaved(
     userQuery: string,
     maxRounds: number,
-    isConverged: (lastMsg: string) => boolean
+    isConverged: (lastMsg: string) => boolean,
+    requireAllAgents: boolean = false
   ): Promise<string> {
     if (!this.sharedMemory) {
-      console.warn(`[AdvancedAgentTeam] You didn't provide sharedMemory. 
-        We'll just pass around text manually instead.`);
+      console.warn(`[AdvancedAgentTeam] No shared memory set. Agents will not see each other's contributions.`);
     }
-
-    // Initialize conversation
-    let currentMessage = userQuery; 
+  
+    let currentMessage = userQuery;
     let round = 0;
-
-    // If we do have sharedMemory, we add the user's message to it
-    if (this.sharedMemory) {
-      await this.sharedMemory.addMessage({ role: "user", content: userQuery });
-    }
-
+    const contributions: Map<string, string> = new Map();
+  
     while (round < maxRounds) {
       for (const agent of this.agents) {
         round++;
         if (round > maxRounds) break;
-
-        // If using sharedMemory, the agent sees the entire conversation context
-        const agentOutput = await agent.run(currentMessage);
-
-        // If using sharedMemory, the agent's run method also updates memory,
-        // so we can just read from memory. Otherwise, we must store it ourselves:
-        if (!this.sharedMemory) {
-          // add to local or ephemeral memory
-          currentMessage = agentOutput;
+  
+        const role = agent === this.agents[0] ? "numerical" : "historical";
+        const agentQuery = role === "numerical"
+          ? "Focus only on numerical insights about Pi."
+          : "Focus only on historical and linguistic aspects of Pi.";
+  
+        console.log(`[AdvancedAgentTeam] Round ${round}: Passing message to ${agent.name}`);
+        const agentOutput = await agent.run(agentQuery);
+        
+        // Validate response
+        if (!this.validateResponse(agent.name, agentOutput, role)) {
+          console.warn(`[AdvancedAgentTeam] Skipping invalid response from ${agent.name}.`);
+          continue;
+        }
+  
+        contributions.set(agent.name, agentOutput);
+  
+        if (this.sharedMemory) {
+          currentMessage = (await this.sharedMemory.getContext()).slice(-1)[0].content;
         } else {
-          // read the last message from sharedMemory
           currentMessage = agentOutput;
         }
-
-        // Check for convergence
-        if (isConverged(agentOutput)) {
-          return agentOutput;
+  
+        console.log(`[AdvancedAgentTeam] ${agent.name} response:`, { agentOutput });
+  
+        if (!requireAllAgents || contributions.size === this.agents.length) {
+          if (isConverged(agentOutput)) {
+            console.log(`[AdvancedAgentTeam] Convergence achieved with:`, { agentOutput });
+            return Array.from(contributions.values()).join("\n---\n");
+          }
         }
       }
     }
-    // If we exit the loop, return the last known message
-    return currentMessage;
-  }
+  
+    console.warn(`[AdvancedAgentTeam] No convergence after ${maxRounds} rounds.`);
+    return Array.from(contributions.values()).join("\n---\n");
+  }  
 }

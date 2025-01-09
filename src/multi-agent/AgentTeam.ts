@@ -1,6 +1,6 @@
 // src/multi-agent/AgentTeam.ts
 
-import { Agent } from "../Agent";
+import { Agent } from "../agents/Agent";
 
 export interface TeamHooks {
     onAgentStart?: (agentName: string, input: string) => void;
@@ -57,7 +57,7 @@ export class AgentTeam {
         if (hooks?.onFinal) {
             hooks.onFinal(results);
         }
-        
+
         return results;
     }
   

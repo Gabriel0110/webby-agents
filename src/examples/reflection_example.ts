@@ -11,7 +11,7 @@
  *  - Otherwise, the reflection is purely for developer debugging.
  */
 
-import { Agent } from "../Agent";
+import { Agent } from "../agents/Agent";
 import { OpenAIChat } from "../LLMs/OpenAIChat";
 import { ShortTermMemory } from "../memory/ShortTermMemory";
 import { ReflectionMemory } from "../memory/ReflectionMemory";

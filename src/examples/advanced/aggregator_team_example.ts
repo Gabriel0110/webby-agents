@@ -1,7 +1,7 @@
 // aggregator_team_example.ts
 
 import { AgentTeam } from "../../multi-agent/AgentTeam";
-import { Agent } from "../../Agent";
+import { Agent } from "../../agents/Agent";
 
 export class AggregatorAgentTeam extends AgentTeam {
   private aggregator: Agent;
