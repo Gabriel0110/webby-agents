@@ -1,5 +1,9 @@
 ![Webby Agents](webby-agents.webp)
 
+[![GitHub stars](https://img.shields.io/github/stars/webby-agents/webby-agents?style=flat-square)](https://github.com/webby-agents/webby-agents/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/webby-agents/webby-agents?style=flat-square)](https://github.com/webby-agents/webby-agents/issues)
+[![GitHub license](https://img.shields.io/github/license/webby-agents/webby-agents?style=flat-square)](https://github.com/webby-agents/webby-agents/blob/main/LICENSE)
+
 # Webby-Agents Framework
 
 A **simple and extensible** TypeScript/Node.js framework for building AI-powered agents with memory, tool usage, and multi-step reasoning. This framework provides the core building blocks needed to integrate Large Language Models (LLMs) into your web applications and empower them with “agentic” capabilities. The goal is to provide simplicity but also customization and extensibility for more advanced use cases ***if you so desire***.
