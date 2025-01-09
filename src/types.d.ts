@@ -1,5 +1,3 @@
-declare module "webby-agent" {
+declare module "webby-agents" {
     export * from "./dist/index";
 }  
-
-declare module "duck-duck-scrape";

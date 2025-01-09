@@ -1,18 +1,15 @@
-// src/memory/LongTermMemory.ts
 import { Memory, ConversationMessage } from "./Memory";
-import { InMemoryVectorStore, VectorStoreItem } from "./VectorStore";
+import { InMemoryVectorStore } from "./VectorStore";
 import { OpenAIEmbeddings } from "../LLMs/OpenAIEmbeddings";
 
 export interface LongTermMemoryOptions {
   embeddings: OpenAIEmbeddings;
-  maxMessages?: number; // optional cap on how many to store
-  topK?: number;        // how many old messages to retrieve
+  maxMessages?: number; 
+  topK?: number;        
 }
 
 /**
- * LongTermMemory:
- *  - Each new message is embedded and stored in a vector store.
- *  - For retrieval, you can call retrieveRelevant(query) to get top-K similar messages.
+ * LongTermMemory with vector store retrieval.
  */
 export class LongTermMemory implements Memory {
   private vectorStore: InMemoryVectorStore;
@@ -41,35 +38,34 @@ export class LongTermMemory implements Memory {
       }
     });
 
-    // If we exceed max messages, remove the oldest
     const allItems = this.vectorStore.getAllItems();
     if (allItems.length > this.maxMessages) {
-      allItems.shift(); // naive approach to drop oldest
+      allItems.shift();
     }
   }
 
-  /**
-   * getContext() by default returns an empty array 
-   * (since you generally want to call retrieveRelevant(...) instead).
-   */
   public async getContext(): Promise<ConversationMessage[]> {
+    // By default, no immediate context unless you do retrieval
     return [];
+  }
+
+  /**
+   * Return top-K relevant messages to the query
+   */
+  public async getContextForPrompt(query: string): Promise<ConversationMessage[]> {
+    if (!query.trim()) {
+      return [];
+    }
+    const embedding = await this.embeddings.embed(query);
+    const results = this.vectorStore.similaritySearch(embedding, this.topK);
+    return results.map((r) => ({
+      role: "assistant",
+      content: r.content,
+      timestamp: r.metadata?.timestamp,
+    }));
   }
 
   public async clear(): Promise<void> {
     this.vectorStore = new InMemoryVectorStore();
-  }
-
-  /**
-   * Retrieve the top-K relevant messages from the vector store for a given query.
-   */
-  public async retrieveRelevant(query: string, k?: number): Promise<ConversationMessage[]> {
-    const embedding = await this.embeddings.embed(query);
-    const results = this.vectorStore.similaritySearch(embedding, k ?? this.topK);
-    return results.map(r => ({
-      role: "assistant",
-      content: r.content,
-      timestamp: r.metadata?.timestamp
-    }));
   }
 }

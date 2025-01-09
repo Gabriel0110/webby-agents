@@ -1,39 +1,43 @@
-// src/memory/SummarizingMemory.ts
 import { Memory, ConversationMessage } from "./Memory";
 import { OpenAIChat } from "../LLMs/OpenAIChat";
 
+interface SummarizingMemoryOptions {
+  threshold: number;
+  summarizerModel: OpenAIChat;
+  summaryPrompt?: string;
+  maxSummaryTokens?: number;
+  hierarchical?: boolean; // If true, store multiple chunk-level summaries
+}
+
 /**
- * SummarizingMemory:
- *  - Stores messages in an array until they exceed a threshold.
- *  - Then uses an LLM (summarizerModel) to summarize the older messages,
- *    replaces them with a single summary message, and keeps that summary in context.
+ * SummarizingMemory with optional hierarchical chunk-level approach.
  */
 export class SummarizingMemory implements Memory {
   private messages: ConversationMessage[] = [];
-  private threshold: number; // number of messages before summarizing
-  private summarizerModel: OpenAIChat; // the model we'll use for summarizing
-  private summaryPrompt: string; // instructions on how to summarize
+  private threshold: number; 
+  private summarizerModel: OpenAIChat; 
+  private summaryPrompt: string; 
   private maxSummaryTokens: number;
+  private hierarchical: boolean;
+  private chunkSummaries: string[] = []; // store summaries for sub-chunks
 
-  constructor(options: {
-    threshold: number;
-    summarizerModel: OpenAIChat;
-    summaryPrompt?: string;
-    maxSummaryTokens?: number;
-  }) {
+  constructor(options: SummarizingMemoryOptions) {
     this.threshold = options.threshold;
     this.summarizerModel = options.summarizerModel;
-    this.summaryPrompt =
-      options.summaryPrompt ??
-      "Please provide a concise summary of the following conversation:";
+    this.summaryPrompt = options.summaryPrompt ?? "Summarize the following conversation:";
     this.maxSummaryTokens = options.maxSummaryTokens ?? 150;
+    this.hierarchical = options.hierarchical ?? false;
   }
 
   public async addMessage(message: ConversationMessage): Promise<void> {
     this.messages.push(message);
-    // If we exceed threshold, summarize older messages
     if (this.messages.length > this.threshold) {
-      await this.summarizeOlderMessages();
+      // If hierarchical is enabled, we keep chunk-level summary
+      if (this.hierarchical) {
+        await this.summarizeAndStoreChunk();
+      } else {
+        await this.summarizeOlderMessages();
+      }
     }
   }
 
@@ -41,8 +45,14 @@ export class SummarizingMemory implements Memory {
     return this.messages;
   }
 
+  public async getContextForPrompt(_query: string): Promise<ConversationMessage[]> {
+    // Possibly return just the last few messages + the summary message(s).
+    return this.messages;
+  }
+
   public async clear(): Promise<void> {
     this.messages = [];
+    this.chunkSummaries = [];
   }
 
   private async summarizeOlderMessages(): Promise<void> {
@@ -53,23 +63,49 @@ export class SummarizingMemory implements Memory {
     const olderMessages = this.messages.slice(0, this.messages.length - keepCount);
     const recentMessages = this.messages.slice(this.messages.length - keepCount);
 
-    // Build text from the older messages
     const conversationText = olderMessages
-      .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
       .join("\n");
 
-    // Summarize with the LLM
     const summary = await this.summarizerModel.call([
       { role: "system", content: this.summaryPrompt },
-      { role: "user", content: conversationText }
+      { role: "user", content: conversationText },
     ]);
 
-    // Replace older messages with a single summary message
     const summaryMessage: ConversationMessage = {
       role: "assistant",
-      content: `Summary of earlier discussion:\n${summary}`
+      content: `Summary of earlier discussion:\n${summary}`,
     };
 
     this.messages = [summaryMessage, ...recentMessages];
+  }
+
+  /**
+   * If hierarchical, we store the summary in chunkSummaries, then clear older messages.
+   */
+  private async summarizeAndStoreChunk(): Promise<void> {
+    const olderMessages = this.messages.slice(0, this.threshold);
+    const remainder = this.messages.slice(this.threshold);
+
+    const conversationText = olderMessages
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join("\n");
+
+    const summary = await this.summarizerModel.call([
+      { role: "system", content: this.summaryPrompt },
+      { role: "user", content: conversationText },
+    ]);
+
+    // store chunk summary
+    this.chunkSummaries.push(summary);
+
+    // replace older messages with a single summary message
+    this.messages = [
+      {
+        role: "assistant",
+        content: `Chunk summary: ${summary}`,
+      },
+      ...remainder,
+    ];
   }
 }

@@ -1,19 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2019",
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "lib": ["ES2019", "DOM"],
-    "outDir": "dist",
+    "outDir": "dist/cjs",
     "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
     "sourceMap": true
   },
-  "include": ["src/**/*", "src/types.d.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "**/__tests__"]
 }

@@ -1,38 +1,70 @@
-![Webby Agent](webby-agent.webp)
+![Webby Agents](webby-agents.webp)
 
-# Webby-Agent Framework
+# Webby-Agents Framework
 
-A **super simple yet extensible** TypeScript/Node.js framework for building AI-powered agents with memory, tool usage (e.g. web search), and multi-step reasoning. This project provides the core building blocks needed to integrate Large Language Models (LLMs) into your web or Node.js applications and empower them with “agentic” capabilities.
+A **simple and extensible** TypeScript/Node.js framework for building AI-powered agents with memory, tool usage, and multi-step reasoning. This framework provides the core building blocks needed to integrate Large Language Models (LLMs) into your web applications and empower them with “agentic” capabilities. The goal is to provide simplicity but also customization and extensibility for more advanced use cases ***if you so desire***.
 
-***[!!] **Under Development**: This project is still under **early** development and may have some rough edges and bugs. Please report any issues you encounter, and feel free to contribute to the project!***
+> **Note**: The framework is still under **active** development. Please report any issues you encounter, and feel free to contribute!
 
 ## Key Features
 
-- **OpenAI Integration**: Includes wrappers for OpenAI ChatCompletion and Embeddings.  
-- **Flexible Memory**: 
-  - **ShortTermMemory** stores recent messages for context.
-  - **SummarizingMemory** automatically summarizes older messages to keep the context manageable.  
-  - **LongTermMemory** (with an in-memory vector store) to recall older context by semantic similarity.  
-- **Tool Usage**: Agents can call external “Tools” (e.g., DuckDuckGo web search) in a multi-step loop, retrieving real-time data and incorporating it into their final answers.  
-- **Safety Controls**: Configure maximum reflection steps, usage limits (for LLM calls), and time-to-live (in milliseconds) to avoid runaway costs and infinite loops. 
-- **Lightweight & Modular**: Use only the parts you need, or extend them for your own advanced use cases.
+- **OpenAI Integration**  
+  Wrappers for OpenAI ChatCompletion and Embeddings (including support for streaming partial tokens).
+
+- **Flexible Memory**  
+  - **ShortTermMemory** – stores recent messages for immediate context.  
+  - **SummarizingMemory** – automatically summarizes older messages to keep the context manageable (supports optional hierarchical chunk-based summarization).  
+  - **LongTermMemory** – an in-memory vector store for semantically relevant retrieval of older context.  
+  - **CompositeMemory** – combine multiple memory classes into a single interface (e.g., short-term + summarizing + vector).  
+
+- **Multi-Agent Orchestration**  
+  Classes like `AgentTeam` and `AgentRouter` let you run multiple agents in parallel, sequentially, or with routing logic.
+
+- **Pluggable Planning & Workflows**  
+  - **Planner** interface for generating structured task plans.  
+  - **Workflow** for fixed step-by-step or parallel tasks.
+
+- **Tool Usage**  
+  Agents can call custom external “Tools” in a multi-step loop, retrieving data and incorporating it into final answers. You can extend the `Tool` interface for your own use cases.
+    - **Parameterized Tools** – tools that take input parameters for more dynamic behavior. See the `tool_parameter_demo.ts` example on how to call tools with required and optional parameters.
+
+- **Safety Controls**  
+  Configure max reflection steps, usage limits, time-to-live, plus hooks for user approval on tool calls.
+
+- **Debug Logging & Hooks**  
+  Add custom hooks for logging, debugging, or user approval on tool calls. You can enable agent debugging for more detailed logs via the `debug` option, setting it to `true`.
+
+- **Lightweight & Modular**  
+  Use only the parts you need, or extend them for advanced use cases (e.g., reflection memory, external vector DBs).
+
+---
 
 ## Table of Contents
 
 1. [Installation](#installation)  
-2. [Project Structure](#project-structure)  
-3. [Usage & Examples](#usage--examples)  
-   - [1. Basic Single Agent](#1-basic-single-agent)  
-   - [2. Using Memory](#2-using-memory)  
-   - [3. Adding Tools](#3-adding-tools)  
-4. [Agent Options & Settings](#agent-options--settings)  
-5. [Memory Classes](#memory-classes)  
-6. [Models](#models)  
-7. [Building & Running](#building--running)  
-8. [Current Tools](#current-tools)  
-9. [FAQ](#faq)  
-10. [Roadmap](#roadmap)  
-11. [License](#license)
+2. [Usage & Examples](#usage--examples)  
+   - [Basic Agent (Single-Pass)](#1-basic-agent-single-pass)  
+   - [Workflow Example (Fixed Steps)](#2-workflow-example-fixed-steps)  
+   - [Multi-Tool Agent](#3-multi-tool-agent)  
+   - [Agent Team (Parallel/Sequential)](#4-agent-team-parallelsequential)  
+   - [RAG Demo (Long-Term Memory Retrieval)](#5-rag-demo-long-term-memory-retrieval)  
+   - [Planner Example](#6-planner-example)  
+   - [Evaluator Example](#7-evaluator-example)  
+   - [Agent with Logging Hooks](#8-agent-with-logging-hooks)  
+3. [Agent Options & Settings](#agent-options--settings)  
+4. [Memory](#memory)  
+5. [Models](#models)  
+6. [Multi-Agent Orchestration](#multi-agent-orchestration)  
+7. [Planner & Workflow](#planner--workflow)  
+8. [Evaluators](#evaluators)  
+9. [Advanced Patterns and Best Practices](#advanced-patterns-and-best-practices)  
+   - [Reflection Memory](#reflection-memory)  
+   - [Safe Run Methods](#safe-run-methods)  
+   - [Advanced Multi-Agent Synergy](#advanced-multi-agent-synergy)
+10. [Building & Running](#building--running)  
+11. [FAQ](#faq)  
+12. [Roadmap](#roadmap)  
+13. [License](#license)
 
 ---
 
@@ -40,220 +72,470 @@ A **super simple yet extensible** TypeScript/Node.js framework for building AI-p
 
 ```bash
 # Using npm:
-npm install webby-agent
+npm install webby-agents
 
 # Or using yarn:
-yarn add webby-agent
+yarn add webby-agents
 ```
 
 > You need a recent version of Node (>= 18) and TypeScript (>= 4.9).
 
 ---
 
-## Project Structure
+## Usage & Examples
 
+Below are **nine** demos demonstrating different ways to build and orchestrate agents. Each has **Key Observations** to highlight important concepts or usage patterns.
+
+### 1) **Basic Agent (Single-Pass)**
+
+**Goal**: A minimal agent that performs a single LLM call. No reflection, no tools, just a direct “Question -> Answer.”
+
+```ts
+import { Agent } from "webby-agents";
+import { OpenAIChat } from "webby-agents";
+import { ShortTermMemory } from "webby-agents";
+
+async function main() {
+  // Create a minimal LLM
+  const chatModel = new OpenAIChat({
+    apiKey: "YOUR_API_KEY_HERE",
+    model: "gpt-4o-mini",
+    temperature: 0.5,
+  });
+
+  // Simple short-term memory for up to 5 messages
+  const shortTermMemory = new ShortTermMemory(5);
+
+  // Create an Agent with NO reflection or tools
+  const agent = Agent.create({
+    model: chatModel,
+    memory: shortTermMemory,
+    instructions: ["You are a simple single-pass agent."],
+    options: {
+      useReflection: false, // single pass
+      maxSteps: 1,
+      usageLimit: 2,
+      timeToLive: 5000,
+    },
+  });
+
+  // Run the agent with a quick question
+  const userQuestion = "What's a quick tip for staying productive at work?";
+  console.log("User Question:", userQuestion);
+
+  const answer = await agent.run(userQuestion);
+  console.log("Agent's Final Answer:", answer);
+}
+
+main().catch(console.error);
 ```
-webby-agent/
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── index.ts
-│   ├── Agent.ts
-|   |── demo.ts
-│   ├── LLMs/
-│   |   ├── index.ts
-│   │   ├── OpenAIChat.ts
-│   │   └── OpenAIEmbeddings.ts
-│   ├── memory/
-│   │   ├── index.ts
-│   │   ├── Memory.ts
-│   │   ├── ShortTermMemory.ts
-│   │   ├── SummarizingMemory.ts
-│   │   ├── LongTermMemory.ts
-│   │   └── VectorStore.ts
-│   └── tools/
-│       ├── index.ts
-│       ├── Tool.ts
-│       └── DuckDuckGoTool.ts
 
-```
-
-- **Agent.ts**: The main class orchestrating multi-step reasoning and tool usage.  
-- **LLMs**: Contains wrappers for OpenAI-based Chat and Embeddings.  
-- **memory**: Contains different Memory classes (short-term, summarizing, long-term).  
-- **tools**: Contains Tool interfaces and implementations (e.g., DuckDuckGo search).
+**Key Observations**:
+- Agent is **single-pass** by setting `useReflection: false`.  
+- Only **ShortTermMemory** is appended automatically, storing the last few messages.  
+- Good for trivial or low-cost tasks with no tool usage.
 
 ---
 
-## Usage & Examples
+### 2) **Workflow Example (Fixed Steps)**
 
-### 0. OpenAI API Key
-
-In order to use the OpenAI integration, you need to provide your API key. You can do this by passing it to the model constructor:
+**Goal**: Demonstrate a fixed-step approach using the `Workflow` class, which is simpler than a fully autonomous agent for known tasks.
 
 ```ts
-const model = new OpenAIChat({
-  apiKey: "your-api-key-here",
-  model: "gpt-4o-mini",
-  temperature: 0.7,
-});
-```
-
-Follow best practices for handling API keys in your environment.
-
-
-### 1. Basic Single Agent
-
-**Goal**: A single-pass (no reflection) agent that just calls OpenAI once.
-
-```ts
-import { Agent, AgentOptions, ShortTermMemory, SummarizingMemory, LongTermMemory, OpenAIChat, OpenAIEmbeddings, DuckDuckGoTool } from "webby-agent";
-
-async function basicAgent() {
-
-  // OpenAI model
-  const model = new OpenAIChat({
-    model: "gpt-4o-mini",
-    temperature: 0.7
-  });
-
-  // Choose memory model
-  const shortTermMem = new ShortTermMemory(10);
-
-  // Agent options: single-pass only
-  const agentOptions: AgentOptions = {
-    useReflection: false,
-    maxSteps: 1,
-    usageLimit: 1
-  };
-
-  // Create the agent
-  const agent = new Agent(
-    model,                            // Model
-    shortTermMem,                     // Memory
-    [],                               // No tools
-    ["You are a helpful assistant."], // Instructions
-    agentOptions                      // Options
-  );
-
-  const response = await agent.run("Hello, how are you?");
-  console.log("Agent response:", response);
-}
-```
-
-### 2. Full example with different memory models, full agent options showcase, and tool use
-
-**Goal**: Use a more long-range memory model and add the DuckDuckGo search tool. Agent options are set to allow multi-step reasoning with safeguards.
-
-```ts
-import { Agent, AgentOptions, ShortTermMemory, SummarizingMemory, LongTermMemory, OpenAIChat, OpenAIEmbeddings, DuckDuckGoTool } from "webby-agent";
+import { Workflow, LLMCallStep } from "webby-agents";
+import { OpenAIChat } from "webby-agents";
+import { ShortTermMemory } from "webby-agents";
 
 async function main() {
+  // Create a model
+  const model = new OpenAIChat({
+    apiKey: "YOUR_API_KEY",
+    model: "gpt-4o-mini",
+    temperature: 0.7,
+  });
 
-  // 1) Create LLM
+  const memory = new ShortTermMemory(10);
+
+  // Define steps
+  const step1 = new LLMCallStep(model, "Step 1: Greet the user politely.");
+  const step2 = new LLMCallStep(model, "Step 2: Provide a brief motivational quote.");
+
+  const workflow = new Workflow([step1, step2], memory);
+
+  const userInput = "I need some positivity today!";
+  console.log("User says:", userInput);
+
+  const finalOutput = await workflow.runSequential(userInput);
+  console.log("Workflow Final Output:", finalOutput);
+}
+
+main().catch(console.error);
+```
+
+**Key Observations**:
+- Each `LLMCallStep` has its own “system prompt.”  
+- The user input is added to memory, each step sees the updated context.  
+- Great for “scripted” or “predefined” pipelines.
+
+---
+
+### 3) **Multi-Tool Agent**
+
+**Goal**: Show how an agent can have multiple tools (fake or real) and call them autonomously.
+
+```ts
+import { Agent, ShortTermMemory, OpenAIChat, Tool } from "webby-agents";
+
+// Dummy tool #1
+class FakeSearchTool implements Tool {
+  name = "FakeSearch";
+  description = "Simulates a search engine lookup (dummy).";
+  async run(input: string): Promise<string> {
+    return `FAKE SEARCH RESULTS for "${input}"`;
+  }
+}
+
+// Dummy tool #2
+class FakeTranslatorTool implements Tool {
+  name = "FakeTranslator";
+  description = "Pretends to translate input text into French.";
+  async run(input: string): Promise<string> {
+    return `FAKE TRANSLATION to French: "${input}" => [Ceci est une traduction factice]`;
+  }
+}
+
+async function main() {
   const chatModel = new OpenAIChat({
+    apiKey: "YOUR_API_KEY",
+    model: "gpt-4o-mini"
+  });
+
+  const mem = new ShortTermMemory(10);
+
+  const agent = Agent.create({
+    name: "MultiToolAgent",
+    model: chatModel,
+    memory: mem,
+    tools: [new FakeSearchTool(), new FakeTranslatorTool()],
+    instructions: [
+      "Use FakeSearch if the user requests data from the web.",
+      "Use FakeTranslator if the user wants it in French."
+    ],
+    options: {
+      useReflection: true,
+      maxSteps: 5,
+      usageLimit: 5,
+    }
+  });
+
+  const userQuestion = "Search for today's top news and then translate the summary into French.";
+  console.log("User Question:", userQuestion);
+
+  const answer = await agent.run(userQuestion);
+  console.log("Final Answer:", answer);
+}
+
+main().catch(console.error);
+```
+
+**Key Observations**:
+- Multiple tools allow more complex tasks.  
+- The agent can choose to use one or both tools in its reflection loop.  
+- Tools are minimal “run(input: string) => string” classes.
+
+---
+
+### 4) **Agent Team (Parallel/Sequential)**
+
+**Goal**: Show how multiple agents can coordinate using `AgentTeam`.
+
+```ts
+import { Agent, AgentTeam, ShortTermMemory, OpenAIChat } from "webby-agents";
+
+async function main() {
+  // Agent #1: "GreetingAgent"
+  const greetingAgent = Agent.create({
+    name: "GreetingAgent",
+    model: new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" }),
+    memory: new ShortTermMemory(5),
+    instructions: ["Greet the user in a friendly way."],
+    options: { useReflection: false, maxSteps: 1 }
+  });
+
+  // Agent #2: "MotivationAgent"
+  const motivationAgent = Agent.create({
+    name: "MotivationAgent",
+    model: new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" }),
+    memory: new ShortTermMemory(5),
+    instructions: ["Provide a short motivational statement."],
+    options: { useReflection: false, maxSteps: 1 }
+  });
+
+  // Create a team
+  const team = new AgentTeam("Greeting+MotivationTeam", [greetingAgent, motivationAgent]);
+
+  const userPrompt = "I could use some positivity today!";
+  console.log("User Prompt:", userPrompt);
+
+  // Run them in parallel
+  const parallelResults = await team.runInParallel(userPrompt);
+  console.log("Parallel Results:", parallelResults);
+
+  // Run them sequentially
+  const sequentialResult = await team.runSequential(userPrompt);
+  console.log("Sequential Result:", sequentialResult);
+}
+
+main().catch(console.error);
+```
+
+**Key Observations**:
+- `runInParallel` returns an array of answers.  
+- `runSequential` passes the previous agent’s output as the next agent’s input.  
+- Each agent can have its own memory, instructions, or tools.
+
+---
+
+### 5) **RAG Demo (Long-Term Memory Retrieval)**
+
+**Goal**: Show how to store older context in a semantic vector store and retrieve it later.
+
+```ts
+import { Agent, CompositeMemory, ShortTermMemory, SummarizingMemory, LongTermMemory, OpenAIChat, OpenAIEmbeddings } from "webby-agents";
+
+async function main() {
+  // Models
+  const chatModel = new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" });
+  const summarizerModel = new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" });
+  const embeddingsModel = new OpenAIEmbeddings({ apiKey: "KEY", model: "text-embedding-3-small" });
+
+  // Memories
+  const shortMem = new ShortTermMemory(5);
+  const sumMem = new SummarizingMemory({ threshold: 5, summarizerModel });
+  const longMem = new LongTermMemory({ embeddings: embeddingsModel, topK: 3 });
+
+  // Combine them
+  const compositeMem = new CompositeMemory(shortMem, sumMem, longMem);
+
+  const agent = Agent.create({
+    name: "RAGAgent",
+    model: chatModel,
+    memory: compositeMem,
+    instructions: ["Recall older context when asked about it."],
+    options: { useReflection: true, maxSteps: 5 }
+  });
+
+  // Store some data
+  await agent.run("I'm planning a road trip from LA to Vegas on June 15. Budget: $500 total.");
+  await agent.run("Add note: also want to do a hot air balloon ride if possible.");
+
+  // Later
+  const question = "Remind me what my plan was, and how much budget I allocated?";
+  const answer = await agent.run(question);
+  console.log("Agent’s Final Answer:", answer);
+}
+
+main().catch(console.error);
+```
+
+**Key Observations**:
+- ShortTermMemory captures immediate recency, SummarizingMemory condenses older conversation, LongTermMemory performs semantic retrieval.  
+- CompositeMemory merges them all, so the agent has a holistic memory.  
+- By default, the agent tries to append everything, but can be adapted for more advanced usage (see MemoryTool pattern below).
+
+---
+
+### 6) **Planner Example**
+
+**Goal**: Show how a `Planner` can generate a structured plan (JSON or bullet list) that the agent may follow before final reasoning.
+
+```ts
+import { Agent, SimpleLLMPlanner, OpenAIChat, ShortTermMemory, Tool } from "webby-agents";
+
+// Dummy tool
+class DummyCalendarTool implements Tool {
+  name = "Calendar";
+  description = "Manages scheduling or date lookups (dummy).";
+  async run(input: string): Promise<string> {
+    return `FAKE CALENDAR ACTION for "${input}"`;
+  }
+}
+
+async function main() {
+  const mainModel = new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" });
+  const plannerModel = new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" });
+
+  const planner = new SimpleLLMPlanner(plannerModel);
+  const memory = new ShortTermMemory(5);
+  const calendarTool = new DummyCalendarTool();
+
+  const agent = Agent.create({
+    name: "PlannerAgent",
+    model: mainModel,
+    memory,
+    tools: [calendarTool],
+    planner,
+    instructions: ["If the plan step references Calendar, call it."],
+    options: { maxSteps: 5, usageLimit: 10, timeToLive: 30000, useReflection: true, debug: true },
+    hooks: {
+      onPlanGenerated: (plan) => console.log("[Plan Generated]", plan),
+    },
+  });
+
+  const userQuery = "Schedule a meeting next Friday to discuss project updates.";
+  console.log("User Query:", userQuery);
+
+  const answer = await agent.run(userQuery);
+  console.log("Final Answer:", answer);
+}
+
+main().catch(console.error);
+```
+
+**Key Observations**:
+- `SimpleLLMPlanner` can produce a plan describing steps or tools to call.  
+- The agent can parse or interpret that plan in a multi-step loop.  
+- `onPlanGenerated` hook logs the plan for debugging.
+
+---
+
+### 7) **Evaluator Example**
+
+**Goal**: Show how an additional LLM call can critique or score the agent’s final output using `SimpleEvaluator`.
+
+```ts
+import { Agent, SimpleEvaluator, ShortTermMemory, OpenAIChat } from "webby-agents";
+
+async function main() {
+  const agentModel = new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" });
+  const memory = new ShortTermMemory(10);
+
+  const agent = Agent.create({
+    name: "EvaluatedAgent",
+    model: agentModel,
+    memory,
+    instructions: ["Provide a concise explanation."],
+    options: { maxSteps: 3, usageLimit: 5, useReflection: true },
+  });
+
+  // The evaluator uses a second (or same) LLM to critique
+  const evalModel = new OpenAIChat({ apiKey: "KEY", model: "gpt-4o-mini" });
+  const evaluator = new SimpleEvaluator(evalModel);
+
+  const question = "Explain the difference between supervised and unsupervised learning.";
+  const answer = await agent.run(question);
+
+  console.log("Agent's Final Answer:", answer);
+
+  // Evaluate final answer
+  const conversation = await memory.getContext();
+  const result = await evaluator.evaluate(conversation);
+
+  console.log("Evaluation Score:", result.score);
+  console.log("Feedback:", result.feedback);
+  console.log("Improvements:", result.improvements);
+}
+
+main().catch(console.error);
+```
+
+**Key Observations**:
+- A separate LLM pass can generate a `score` and `feedback`.  
+- In production, you might automate a re-try loop if score < threshold.  
+- Evaluation is an optional feature to refine or grade agent outputs.
+
+---
+
+### 8) **Agent with Logging Hooks**
+
+**Goal**: Demonstrate using `hooks` (`onStep`, `onToolCall`, `onFinalAnswer`) for debugging and user approvals.
+
+```ts
+import { Agent, ShortTermMemory, OpenAIChat, Tool } from "webby-agents";
+
+class DummyMathTool implements Tool {
+  name = "DummyMath";
+  description = "Performs fake math calculations (always returns 42).";
+  async run(input: string): Promise<string> {
+    return `The result of "${input}" is 42.`;
+  }
+}
+
+async function main() {
+  const model = new OpenAIChat({
+    apiKey: "YOUR_KEY",
     model: "gpt-4o-mini",
-    temperature: 0.7
+    temperature: 0.6,
   });
 
-  // 2) Create Memory (short-term, up to 10 messages, very basic memory model for short-term context)
-  const shortTermMem = new ShortTermMemory(10);
+  const memory = new ShortTermMemory(5);
 
-  // 2.1) OPTIONAL: Summarizing memory for slightly longer context, summarizing past conversations
-  const summarizerModel = new OpenAIChat({
-    model: "gpt-4o-mini",
-    temperature: 1.0
-  });
-
-  const summarizingMem = new SummarizingMemory({
-    threshold: 5,
-    summarizerModel,
-    summaryPrompt: "Summarize the following conversation clearly:",
-    maxSummaryTokens: 200
-  });
-
-  // 2.2) OPTIONAL: Long-term memory with embeddings for memory search
-  const embeddingsModel = new OpenAIEmbeddings({
-    model: "text-embedding-3-small"
-  });
-
-  const longTermMem = new LongTermMemory({
-    embeddings: embeddingsModel,
-    maxMessages: 500,
-    topK: 3
-  });
-
-  // 3) Create Tools
-  const duckTool = new DuckDuckGoTool({
-    delay: 2000, // 2s delay to avoid rate limiting
-    maxResults: 1 // only 1 result from the search
-  });
-
-  // 4) Agent options with several safeguard options to protect against infinite loops and excessive API usage
-  const agentOptions: AgentOptions = {
-    maxSteps: 5,         // up to 5 reflection loops
-    usageLimit: 5,       // up to 5 total LLM calls
-    timeToLive: 60_000,  // 60s TTL
-    useReflection: true  // multi-step (reflection) reasoning, enabled by default when tools are used
+  const hooks = {
+    onStep: (messages: any) => {
+      console.log("[Hook: onStep] Current messages:", messages);
+    },
+    onToolCall: async (toolName: string, query: string) => {
+      console.log(`[Hook: onToolCall] Tool="${toolName}" Query="${query}"`);
+      return true; // could return false to cancel
+    },
+    onFinalAnswer: (answer: string) => {
+      console.log("[Hook: onFinalAnswer] =>", answer);
+    }
   };
 
-  // 5) Instantiate the Agent
-  const agent = new Agent(
-    chatModel,        // Model
-    summarizingMem,   // Memory
-    [duckTool],       // Tools
-    [                 // Instructions
-      "You are a helpful agent that can search the web for the latest information.",
-      "Always check if a web search is needed if the user asks for up-to-date or current data about anything."
-    ],
-    agentOptions      // Agent options
-  );
+  const agent = Agent.create({
+    name: "HookedAgent",
+    model,
+    memory,
+    tools: [new DummyMathTool()],
+    instructions: ["If user asks for a calculation, call DummyMath."],
+    hooks,
+    options: { useReflection: true, maxSteps: 5, usageLimit: 5, debug: true },
+  });
 
-  // 6) The user’s query that needs fresh data from the web
-  const userQuestion = "What is the weather like today in San Francisco, CA?";
-  console.log("\nUser Question:", userQuestion);
+  const question = "What is 123 + 456, approximately?";
+  console.log("User asks:", question);
 
-  // 7) Let the agent handle the question
-  const answer = await agent.run(userQuestion);
-  console.log("\nAgent's Final Answer:\n", answer);
+  const answer = await agent.run(question);
+  console.log("Final Answer from Agent:", answer);
 }
+
+main().catch(console.error);
 ```
+
+**Key Observations**:
+- `onToolCall` can be used to require user confirmation or log usage.  
+- `onStep` shows the conversation state after each reflection step.  
+- `debug: true` provides more console logs for diagnosing agent flow.
 
 ---
 
 ## Agent Options & Settings
 
-The **`AgentOptions`** interface allows you to customize the agent’s behavior:
+**`AgentOptions`** let you shape agent behavior:
 
-| Option         | Type     | Default | Description                                                                                   |
-|----------------|----------|---------|-----------------------------------------------------------------------------------------------|
-| `maxSteps`     | number   | `5`     | Maximum reflection steps in the “thinking” loop. Use `-1` for no limit.                       |
-| `usageLimit`   | number   | `5`     | Maximum total LLM calls. Useful for cost control.                                             |
-| `useReflection`| boolean  | `true`  | If false, the agent does a single pass (won’t handle tool requests).                          |
-| `timeToLive`   | number   | `60000` | Milliseconds. If elapsed time exceeds this, the agent stops to avoid runaway usage. `-1` = no limit. |
-
-**Note**: If you provide any tools to the agent, `useReflection` will be forced to **true** (the agent logs a warning otherwise) so that tool calls can be processed properly.
+| Option         | Default   | Description                                                                     |
+|----------------|-----------|---------------------------------------------------------------------------------|
+| **`maxSteps`** | `5`       | Max reflection steps in the reasoning loop (`-1` = unlimited).                   |
+| **`usageLimit`** | `5`     | Maximum total LLM calls (cost control).                                         |
+| **`useReflection`** | `true` | If `false`, a single pass only. Tools require reflection to see their results. |
+| **`timeToLive`** | `60000` | (ms) Halts the agent if it runs too long. `-1` = no limit.                       |
+| **`debug`** | `false`     | More logs about each step and the final plan.                                    |
 
 ---
 
-## Memory Classes
+## Memory
 
-### ShortTermMemory
-- `maxMessages`: Maximum number of stored messages.
+### Memory Philosophy
 
-### SummarizingMemory
+- **ShortTermMemory** is best for immediate context (most recent messages).  
+- **SummarizingMemory** prevents bloat by condensing older conversation; optionally can store multiple chunk-level summaries if `hierarchical` is set.  
+- **LongTermMemory** uses semantic embeddings for retrieving older messages by similarity (mini RAG).  
+- **CompositeMemory** merges multiple memory strategies into one.  
 
-- `threshold`: When the number of stored messages exceeds this, older messages get summarized into one “summary” message.  
-- `summarizerModel`: The LLM used for generating summaries.  
-- `summaryPrompt`: Instructions for how to summarize older messages.  
-- `maxSummaryTokens`: (Optional) A guideline for how many tokens the summary should use (not strictly enforced, but helpful context).
+### ReflectionMemory (Optional)
 
-### LongTermMemory
-
-- Uses **OpenAIEmbeddings** (or any custom embedding class you implement) to store and retrieve messages by semantic similarity.  
-- `maxMessages`: Maximum number of stored items.  
-- `topK`: Number of relevant items to retrieve.  
-- `retrieveRelevant(query)`: Returns top-K historical messages relevant to the query.
+You can create a specialized memory just for the agent’s chain-of-thought or self-critique (“reflection”) that is never shown to the user. This can be helpful for debugging or advanced self-correction patterns.
 
 ---
 
@@ -261,76 +543,397 @@ The **`AgentOptions`** interface allows you to customize the agent’s behavior:
 
 ### `OpenAIChat`
 
-A simple wrapper around OpenAI’s ChatCompletion API. Supports:
-
-- `model`: e.g., `"gpt-4o-mini"` 
-- `temperature`: Affects creativity.  
-- `stream`: Whether to stream partial tokens.  
-- `onToken`: Callback to receive streamed tokens as they arrive.
+- **`model`**: e.g., `"gpt-4o-mini"` 
+- **`temperature`**: Controls creativity.  
+- **`stream`** + **`onToken`**: For partial token streaming.  
 
 ### `OpenAIEmbeddings`
 
-For generating vector embeddings (e.g., `"text-embedding-3-small"`). Useful for semantic search or long-term memory.
+- **`model`**: e.g., `"text-embedding-3-small"`.  
+- Used for semantic similarity in `LongTermMemory`.
+
+---
+
+## Multi-Agent Orchestration
+
+### `AgentTeam`
+
+Runs multiple Agents in **parallel** (`runInParallel`) or **sequential** (`runSequential`). Good for combining domain-specific agents (e.g. finance + web search + summarizer).
+
+### `AgentRouter`
+
+Uses a custom routing function to pick which agent handles a query.
+
+---
+
+## Planner & Workflow
+
+- **`Planner`** interface + **`SimpleLLMPlanner`** let you do a “plan-then-execute” approach, where the LLM can propose a structured plan (for example in JSON) and the system executes each step. This is typically for more open-ended tasks where you want some autonomy, but still want to parse or validate a plan.
+
+- **`Workflow`** provides a **simpler**, more **prescriptive** pattern for tasks that follow a **known sequence** of steps. Instead of letting the LLM dynamically decide how to solve the problem (like an Agent would), the developer defines a series of steps in code. Each step receives the current conversation context (from memory) and returns a new message. The `Workflow` then appends that message to memory and continues to the next step.
+
+### Workflows in Detail
+
+A **Workflow** is composed of multiple **workflow steps**. Each step implements the interface:
+
+```ts
+interface WorkflowStep {
+  name?: string;
+  // Receives an array of conversation messages, returns exactly one new message
+  run(messages: ConversationMessage[]): Promise<ConversationMessage>;
+}
+```
+
+The **`Workflow`** class orchestrates how these steps are invoked:
+
+1. **`runSequential`**:
+   - Calls each step **in order**, passing in the updated conversation context (from memory).
+   - Each step returns a new message, which is appended to memory.
+   - The final output is the `content` of the last step’s message.
+
+2. **`runParallel`**:
+   - Runs **all steps at once** on the same conversation context, gathering all results and appending them to memory.
+   - Returns an array of the messages `content` values.
+
+3. **`runConditional`**:
+   - Similar to `runSequential`, but you provide a `conditionFn` that checks the last step’s output. If the condition fails, it stops immediately.
+
+### Example: A Simple Workflow
+
+```ts
+import { Workflow, LLMCallStep } from "webby-agents";
+import { OpenAIChat } from "webby-agents";
+import { ShortTermMemory } from "webby-agents";
+
+async function main() {
+  // Create a model
+  const model = new OpenAIChat({
+    apiKey: "YOUR_API_KEY",
+    model: "gpt-4o-mini",
+    temperature: 0.7,
+  });
+
+  // Use a short-term memory for storing conversation
+  const memory = new ShortTermMemory(10);
+
+  // Define steps
+  const step1 = new LLMCallStep(model, "Step 1: Greet the user politely.");
+  const step2 = new LLMCallStep(model, "Step 2: Provide a brief motivational quote.");
+
+  // Create and run workflow
+  const workflow = new Workflow([step1, step2], memory);
+
+  const userInput = "I need some positivity today!";
+  console.log("User says:", userInput);
+
+  const finalOutput = await workflow.runSequential(userInput);
+  console.log("Workflow Final Output:", finalOutput);
+}
+
+main().catch(console.error);
+```
+
+1. **Step 1** sees the user message, plus any prior context in memory, and calls OpenAI with a system prompt of `"Step 1: Greet the user politely."`.
+2. The result is appended to memory, and then **Step 2** sees that updated conversation and calls OpenAI with `"Step 2: Provide a brief motivational quote."`.
+3. Finally, you get a single `Workflow Final Output`.
+
+### When to Use a Workflow vs. an Agent?
+
+- **Workflow**:  
+  - You have a **predefined** or **fixed** series of steps you want to run each time (e.g., “collect user input, summarize, translate, finalize”).
+  - You need **predictability** or a **scripted** approach.  
+  - Each step is a known function or LLM call; the model does not “choose” how to proceed.
+
+- **Agent**:  
+  - The LLM is **autonomous** and decides which tool(s) to call, in which order, and when to produce a final answer.
+  - You want **dynamic** multi-step reasoning or “tool usage” in a ReAct-like loop.
+  - The agent uses reflection, tool requests, memory, and potentially self-correction or planning.
+
+### Combining an Agent with a Workflow
+
+You can place an **Agent** call inside a **WorkflowStep** if you want a hybrid approach:
+
+```ts
+class AgentCallStep implements WorkflowStep {
+  private agent: Agent;
+  constructor(agent: Agent) {
+    this.agent = agent;
+  }
+  async run(messages: ConversationMessage[]): Promise<ConversationMessage> {
+    // Possibly parse 'messages' to get user input or context
+    const userInput = messages.find((m) => m.role === "user")?.content ?? "";
+    const agentAnswer = await this.agent.run(userInput);
+    return { role: "assistant", content: agentAnswer };
+  }
+}
+```
+
+Then, include `AgentCallStep` in your workflow steps array if you want “one step” to let the LLM operate in a more autonomous, tool-using manner, but still in a bigger scripted flow.
+
+**In short**, **Workflows** are a simpler, **prescriptive** approach to orchestrating multiple LLM calls or transformations, while **Agents** handle open-ended tasks where the LLM can reason about which steps (Tools) to use to get to the final answer.
+
+
+---
+
+## Evaluators
+
+- **`SimpleEvaluator`** uses a second LLM to critique or rate the final output.  
+- Could be extended for “chain-of-thought” improvement loops, auto-correction, or advanced QA.
+
+---
+
+## Advanced Patterns and Best Practices
+
+Beyond the standard usage patterns (single-pass Agents, Workflows, multi-tool or multi-agent orchestration), **webby-agents** supports more advanced scenarios that can significantly expand agent capabilities. Below are additional patterns and tips for **self-reflection**, **multi-agent synergy**, **error-safe runs**, and more.
+
+---
+
+### Reflection Memory
+
+**What is it?**  
+A specialized `ReflectionMemory` allows the agent to store an internal “chain-of-thought” or self-critique messages (role: `"reflection"`) that aren’t shown to the user. This can be useful for:
+- **Self-correction**: The agent can note mistakes, then fix them in subsequent steps (if `includeReflections` is `true`).
+- **Debugging**: Developers can review the chain-of-thought to see where the agent might have gone wrong without exposing it to end users.
+- **Audit / Logging**: Keep an internal record of the agent’s reasoning steps for advanced QA.
+
+**Example**  
+```ts
+import { Agent } from "webby-agents";
+import { ShortTermMemory } from "webby-agents";
+import { ReflectionMemory } from "webby-agents/memory/ReflectionMemory";
+import { CompositeMemory } from "webby-agents/memory/CompositeMemory";
+import { OpenAIChat } from "webby-agents";
+
+async function main() {
+  const chatModel = new OpenAIChat({ apiKey: "YOUR_API_KEY", model: "gpt-4o-mini" });
+
+  // Public conversation memory
+  const publicMem = new ShortTermMemory(5);
+
+  // Reflection memory (not shown to user)
+  const reflectionMem = new ReflectionMemory(false); // false => do NOT append reflection to prompt
+
+  // Combine them so the agent has a single memory object
+  const composite = new CompositeMemory(publicMem, reflectionMem);
+
+  const agent = Agent.create({
+    name: "ReflectiveAgent",
+    model: chatModel,
+    memory: composite,
+    instructions: [
+      "You are a reflective agent; keep your chain-of-thought hidden from the user."
+    ],
+    options: { useReflection: true }
+  });
+
+  // Add logic to store reflection after final answer or each step
+  const originalHooks = agent["hooks"] || {};
+  agent["hooks"] = {
+    ...originalHooks,
+    onFinalAnswer: (answer: string) => {
+      // Save a reflection message
+      reflectionMem.addMessage({
+        role: "reflection",
+        content: `I produced answer="${answer}". Next time, double-check for accuracy.`
+      });
+    }
+  };
+
+  const userQuestion = "How tall is Mount Everest in meters?";
+  const finalAnswer = await agent.run(userQuestion);
+  console.log("Agent's Final Answer =>", finalAnswer);
+
+  // Inspect reflection memory for debugging
+  const reflections = await reflectionMem.getContext();
+  console.log("ReflectionMemory =>", reflections);
+}
+
+main().catch(console.error);
+```
+
+> **Chain-of-Thought Disclaimer**: If you choose to feed the reflection messages back into the prompt (`includeReflections=true`), be aware of token usage and the potential to leak chain-of-thought if not handled carefully in final user outputs.
+
+---
+
+### Safe Run Methods
+
+When orchestrating multiple agents, you may want more robust error handling. For example:
+
+- **Stop On Error**: Immediately stop if any agent fails.  
+- **Continue On Error**: Log the error but proceed with subsequent agents.
+
+**Example**  
+```ts
+import { AgentTeam } from "webby-agents/multi-agent/AgentTeam";
+import { Agent } from "webby-agents";
+import { ShortTermMemory } from "webby-agents/memory/ShortTermMemory";
+import { OpenAIChat } from "webby-agents";
+
+// Suppose we extend AgentTeam to have runSequentialSafe:
+class SafeAgentTeam extends AgentTeam {
+  public async runSequentialSafe(
+    query: string, 
+    stopOnError: boolean
+  ): Promise<string[]> {
+    let outputs: string[] = [];
+    let currentInput = query;
+
+    for (const agent of this.agents) {
+      try {
+        const out = await agent.run(currentInput);
+        outputs.push(out);
+        currentInput = out;
+      } catch (err) {
+        outputs.push(`Error from agent ${agent.name}: ${(err as Error).message}`);
+        if (stopOnError) break;
+      }
+    }
+    return outputs;
+  }
+}
+
+async function main() {
+  // Create Agents: A, B, C
+  const agentA = Agent.create({ ... });
+  const agentB = Agent.create({ ... }); // might throw error for demonstration
+  const agentC = Agent.create({ ... });
+
+  const team = new SafeAgentTeam("MySafeTeam", [agentA, agentB, agentC]);
+
+  // Stop on error
+  console.log("Stop on error scenario:");
+  const resultsStop = await team.runSequentialSafe("Hello!", true);
+  console.log(resultsStop);
+
+  // Continue on error
+  console.log("Continue on error scenario:");
+  const resultsContinue = await team.runSequentialSafe("Another query...", false);
+  console.log(resultsContinue);
+}
+
+main().catch(console.error);
+```
+
+---
+
+### Advanced Multi-Agent Synergy
+
+Your **AgentTeam** and **AgentRouter** can be extended for more collaborative or specialized interactions:
+
+1. **Shared Memory**: Give each agent the **same** memory instance so they see the entire conversation as it evolves.
+2. **Interleaved/Chat-Like**: Round-robin the agents in a while loop until a convergence condition (like `"FINAL ANSWER"`) is met.
+3. **Sub-Teams**: Combine `AgentRouter` (for domain routing) with an `AgentTeam` (for parallel or sequential synergy among a subset).
+
+**Example**: Interleaved approach with a shared memory
+```ts
+import { AdvancedAgentTeam } from "webby-agents/multi-agent/AdvancedAgentTeam";
+// Suppose we have implemented an advanced class that extends AgentTeam
+// to run agents in a round-robin until we see "FINAL ANSWER"
+
+async function main() {
+  // Build 2 specialized agents
+  // Enable shared memory so they see each other's messages
+  const advancedTeam = new AdvancedAgentTeam("RoundRobinTeam", [agent1, agent2], sharedMem);
+  advancedTeam.enableSharedMemory();
+
+  // They "talk" to each other until "FINAL ANSWER" or max 10 rounds
+  function checkConverged(msg: string) {
+    return msg.includes("FINAL ANSWER");
+  }
+
+  const final = await advancedTeam.runInterleaved("Collaborate on a solution, finalize with 'FINAL ANSWER:'", 10, checkConverged);
+  console.log("Final synergy output =>", final);
+}
+
+main().catch(console.error);
+```
+
+---
+
+### Aggregator & Consensus
+
+You might want a final “aggregator” agent that merges the outputs of multiple sub-agents into a single consensus answer.
+
+```ts
+class AggregatorAgentTeam extends AgentTeam {
+  private aggregator: Agent;
+
+  constructor(name: string, agents: Agent[], aggregator: Agent) {
+    super(name, agents);
+    this.aggregator = aggregator;
+  }
+
+  // For instance, gather parallel results, pass them to aggregator
+  public async runWithAggregator(query: string): Promise<string> {
+    const results = await this.runInParallel(query);
+    const combined = results.join("\\n---\\n");
+    return this.aggregator.run(`Sub-agent answers:\n${combined}\nPlease unify them:`);
+  }
+}
+```
+
+---
+
+## Additional Recommendations
+
+- **Security / Tools**: If you use “write actions” or potentially destructive tools, ensure you have human approval hooks or environment isolation (sandboxing).  
+- **Chain-of-thought Safety**: If reflection memory is fed back into the final prompt or user response, carefully ensure it does not leak internal reasoning to the user if that is not desired.  
+- **External Vector DB**: For production scale retrieval, integrate with an actual vector database instead of in-memory stores.  
+- **Local LLM**: For on-prem or offline scenarios, adapt the code to use local inference with something like Transformers.js or custom endpoints.  
 
 ---
 
 ## Building & Running
 
-1. **Install dependencies**:  
-   ```bash
-   npm install
-   ```
-2. **Build**:  
-   ```bash
-   npm run build
-   ```
-3. **Run** a demo script (e.g., `demo.ts`):
-   ```bash
-   npx ts-node demo.ts
-   ```
+1. **Install** dependencies:
+```bash
+npm install
+```
+
+2. **Build**:
+```bash
+npm run build
+```
+
+3. **Run** a specific demo:
+```bash
+npx ts-node src/examples/basic_agent.ts
+```
 
 ---
 
 ## FAQ
 
-1. **Why do I need multi-step reflection for tools?**  
-   Because the agent must generate a “TOOL REQUEST” action, you run the tool, then show the results to the agent, which then produces a final answer. A single pass wouldn’t allow the agent to read the tool results.
+1. **Why multi-step reflection?**  
+   Because tool usage, memory retrieval, or planning steps require the agent to see the result of each action before finalizing an answer.
 
-2. **Can I switch out SummarizingMemory for something else?**  
-   Yes. Any class implementing the `Memory` interface works (e.g., `ShortTermMemory`, `LongTermMemory`, or your own custom approach).
+2. **Can I swap SummarizingMemory for another approach?**  
+   Absolutely. Any class implementing `Memory` works. You can also create a chunk-based or hierarchical summarizing approach.
 
-3. **How do I handle authentication for tools that require keys?**  
-   You can store secrets in environment variables or pass them to your tool’s constructor. Each tool is free to implement its own logic.
+3. **Is everything stored in memory ephemeral?**  
+   By default, yes. For a persistent store, integrate an external vector DB or a database for your conversation logs.
 
-4. **What about streaming partial responses to a UI?**  
-   Set `stream = true` in `OpenAIChat` and provide an `onToken` callback. The agent can then display partial tokens as they arrive.
+4. **How do I see partial streaming tokens?**  
+   Set `stream = true` in `OpenAIChat`, and provide an `onToken` callback to process partial output in real time.  
 
----
-
-## Current Tools
-
-- **`DuckDuckGoTool`**: A simple web search tool that returns the top result for a given query using the **DuckDuckGo Lite API**. ***This is very limited and would be better replaced with a more robust search tool API like SerpAPI.***
+5. **Do I need to use an agent framework?**
+   Absolutely not. Frameworks are just tools to assist in building more complex agents. You can use the LLMs directly with loops if you prefer.
 
 ---
 
 ## Roadmap
 
-- [ ] Add more tools via available APIs (there's a ton of possibilities)
-- [ ] Implement Transformers.js for local models, including WebGPU-enabled models
-- [ ] Add a basic RAG (Retrieval-Augmented Generation) implementation
-- [ ] Add additional LLM provider API integrations (e.g., Claude, DeepSeek, etc.)
-- [ ] Implement a modular multi-agent orchestration
+- **External Vector DB Integrations** (FAISS, Pinecone, Weaviate, etc.)  
+- **Local LLMs** via Transformers.js and WebGPU-based inference if available  
+- **More LLM API integrations** (e.g., Together.ai, Anthropic, Google, etc.)  
+- **More External Tools**  (e.g., Firecrawl, SerpAPI, etc.)  
+- **Browser Vision Tools** (image recognition, OCR, etc.)  
+- **Multi-step self-correction** (auto re-try if evaluator score < threshold)  
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
 
----
-
-### Contributing
-
-Pull requests are most welcome! For major changes, please open an issue first to discuss.
-
-Feel free to reach out with any questions or feature requests.
+Feel free to submit PRs or open issues for new tools, memory ideas, or advanced agent patterns.

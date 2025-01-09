@@ -1,108 +1,121 @@
-import { Agent, AgentOptions } from "./Agent.js";
-import { ShortTermMemory, SummarizingMemory, LongTermMemory } from "./memory/index.js";
-import { OpenAIChat, OpenAIEmbeddings } from "./LLMs/index.js";
+// src/demo.ts
+import { Agent, AgentOptions } from "./Agent";
+import { ShortTermMemory, SummarizingMemory, LongTermMemory, CompositeMemory } from "./memory/index";
+import { OpenAIChat, OpenAIEmbeddings } from "./LLMs/index";
 import { DuckDuckGoTool } from "./tools/DuckDuckGoTool";
+import { SimpleLLMPlanner } from "./Planner";
+import { SimpleEvaluator } from "./Evaluators/SimpleEvaluator";
 
 async function main() {
-
-  // 1) Create LLM
+  // 1) Create the Chat Model
   const chatModel = new OpenAIChat({
-    apiKey: "your-api-key",
+    apiKey: "your-api-key-here",
     model: "gpt-4o-mini",
-    temperature: 0.7
+    temperature: 0.7,
   });
 
-  // 2) Create Memory (short-term, up to 10 messages, very basic memory model for short-term context)
+  // 2) Create Memories
   const shortTermMem = new ShortTermMemory(10);
 
-  // 2.1) OPTIONAL: Summarizing memory for slightly longer context, summarizing past conversations
   const summarizerModel = new OpenAIChat({
-    apiKey: "your-api-key",
+    apiKey: "your-api-key-here",
     model: "gpt-4o-mini",
-    temperature: 1.0
+    temperature: 1.0,
   });
-
   const summarizingMem = new SummarizingMemory({
     threshold: 5,
     summarizerModel,
     summaryPrompt: "Summarize the following conversation clearly:",
-    maxSummaryTokens: 200
+    maxSummaryTokens: 200,
   });
 
-  // 2.2) OPTIONAL: Long-term memory with embeddings for memory search
   const embeddingsModel = new OpenAIEmbeddings({
-    apiKey: "your-api-key",
-    model: "text-embedding-3-small"
+    apiKey: "your-api-key-here",
+    model: "text-embedding-3-small",
   });
-
   const longTermMem = new LongTermMemory({
     embeddings: embeddingsModel,
     maxMessages: 500,
-    topK: 3
+    topK: 3,
   });
 
-  // 3) Create Tools (here, just DuckDuckGo)
+  // Composite memory using shortTerm + summarizing
+  const compositeMem = new CompositeMemory(shortTermMem, summarizingMem, longTermMem);
+
+  // 3) Tools
   const duckTool = new DuckDuckGoTool({
-    delay: 2000, // 2s delay to avoid rate limiting
-    maxResults: 1 // only 1 result from the search
+    delay: 2000,
+    maxResults: 1,
   });
 
-  // 4) Agent options with several safeguard options to protect against infinite loops and excessive API usage
+  // 4) Planner (Optional)
+  const plannerModel = new OpenAIChat({
+    apiKey: "your-api-key-here",
+    model: "gpt-4o-mini",
+    temperature: 0.5,
+  });
+  const simplePlanner = new SimpleLLMPlanner(plannerModel);
+
+  // 5) Agent options
   const agentOptions: AgentOptions = {
-    maxSteps: 5,         // up to 5 reflection loops
-    usageLimit: 5,       // up to 5 total LLM calls
-    timeToLive: 60_000,  // 60s TTL
-    useReflection: true  // multi-step
+    maxSteps: 5,
+    usageLimit: 5,
+    timeToLive: 60_000,
+    useReflection: true,
+    debug: true,
   };
 
-  // 5) Instantiate the Agent
-  const agent = new Agent(
-    chatModel,        // Model
-    summarizingMem,   // Memory
-    [duckTool],       // Tools
-    [                 // Instructions
-      "You are a helpful agent that can search the web for the latest information.",
-      "Always check if a web search is needed if the user asks for up-to-date or current data about anything."
-    ],
-    agentOptions      // Agent options
-  );
+  // 6) Hooks (optional)
+  const hooks = {
+    onPlanGenerated: (plan: string) => {
+      console.log("[Hook] Plan generated:\n", plan);
+    },
+    onToolCall: async (toolName: string, query: string) => {
+      console.log(`[Hook] About to call tool "${toolName}" with query="${query}"`);
+      return true; // returning false would cancel the call
+    },
+    onFinalAnswer: (answer: string) => {
+      console.log("[Hook] Final answer is:", answer);
+    },
+    onStep: (msgs: any) => {
+      console.log("[Hook] Step completed. Conversation so far:", msgs);
+    },
+  };
 
-  // 6) The user’s query that needs fresh data from the web
+  // 7) Instantiate Agent
+  const agent = Agent.create({
+    name: "WebSearchAgent",
+    model: chatModel,
+    memory: compositeMem,
+    tools: [duckTool],
+    planner: simplePlanner,
+    instructions: [
+      "You are a helpful agent that can search the web for the latest information.",
+      "Always check if a web search is needed if the user asks for current or up-to-date data.",
+    ],
+    options: agentOptions,
+    hooks,
+  });
+
+  // 8) Evaluate the final result (optional)
+  const evaluatorModel = new OpenAIChat({
+    apiKey: "your-api-key-here",
+    model: "gpt-4o-mini",
+  });
+  const evaluator = new SimpleEvaluator(evaluatorModel);
+
+  // 9) Run the agent
   const userQuestion = "What is the weather like today in Dallas, GA 30157?";
   console.log("\nUser Question:", userQuestion);
 
-  // 7) Let the agent handle the question
   const answer = await agent.run(userQuestion);
+
+  // 10) Evaluate answer
+  const conversation = await compositeMem.getContext();
+  const evalResult = await evaluator.evaluate(conversation);
+  console.log("[Evaluation] Score:", evalResult.score, "Feedback:", evalResult.feedback);
+
   console.log("\nAgent's Final Answer:\n", answer);
 }
 
-async function basicAgent() {
-  const model = new OpenAIChat({
-    apiKey: "your-api-key",
-    model: "gpt-4o-mini",
-    temperature: 0.7
-  });
-
-  const shortTermMem = new ShortTermMemory(10);
-
-  // Agent options: single-pass only
-  const agentOptions: AgentOptions = {
-    useReflection: false,
-    maxSteps: 1,
-    usageLimit: 1
-  };
-
-  const agent = new Agent(
-    model,
-    shortTermMem,
-    [],
-    ["You are a helpful assistant."], 
-    agentOptions
-  );
-
-  const response = await agent.run("Hello, how are you?");
-  console.log("Agent response:", response);
-}
-
 main().catch(console.error);
-//basicAgent().catch(console.error);
