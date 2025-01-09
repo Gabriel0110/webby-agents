@@ -11,35 +11,35 @@ async function main() {
   // 5 specialized Agents
   const agents: Agent[] = [
     Agent.create({
-      model: new OpenAIChat({ apiKey: "...", model: "gpt-4o-mini" }),
+      model: new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" }),
       memory: new ShortTermMemory(5),
       instructions: ["You are specialized in finance, investments, and budgeting."],
       options: { useReflection: false, maxSteps: 1 }
     }), // Agent #0: Finance
 
     Agent.create({
-      model: new OpenAIChat({ apiKey: "...", model: "gpt-4o-mini" }),
+      model: new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" }),
       memory: new ShortTermMemory(5), 
       instructions: ["You are specialized in legal advice and regulations."],
       options: { useReflection: false, maxSteps: 1 }
     }), // Agent #1: Legal
 
     Agent.create({
-      model: new OpenAIChat({ apiKey: "...", model: "gpt-4o-mini" }),
+      model: new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" }),
       memory: new ShortTermMemory(5),
       instructions: ["You are specialized in technology and programming."],
       options: { useReflection: false, maxSteps: 1 }
     }), // Agent #2: Tech
 
     Agent.create({
-      model: new OpenAIChat({ apiKey: "...", model: "gpt-4o-mini" }),
+      model: new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" }),
       memory: new ShortTermMemory(5),
       instructions: ["You are specialized in travel and hospitality advice."],
       options: { useReflection: false, maxSteps: 1 }
     }), // Agent #3: Travel
 
     Agent.create({
-      model: new OpenAIChat({ apiKey: "...", model: "gpt-4o-mini" }),
+      model: new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" }),
       memory: new ShortTermMemory(5),
       instructions: ["You are a general knowledge assistant."],
       options: { useReflection: false, maxSteps: 1 }
