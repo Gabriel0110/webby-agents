@@ -90,10 +90,10 @@ async function main() {
     [financeAgent, legalAgent, generalAgent],
     capabilities,
     {
-      useLLM: true,
+      useLLM: true, // LLM-powered routing
       debug: true,
-      fallbackIndex: 2,
-      confidenceThreshold: 0.7
+      fallbackIndex: 2, // General agent as fallback
+      confidenceThreshold: 0.7 // Minimum confidence for routing
     }
   );
 
