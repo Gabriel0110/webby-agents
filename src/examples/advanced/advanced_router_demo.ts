@@ -1,7 +1,7 @@
 // src/examples/advanced/advanced_router_demo.ts
 
 import { Agent } from "../../agents/Agent";
-import { AdvancedAgentRouter, AgentCapability } from "../../multi-agent/AdvancedAgentRouter";
+import { AdvancedAgentRouter, AgentCapability } from "../../agents/multi-agent/AdvancedAgentRouter";
 import { ShortTermMemory } from "../../memory/ShortTermMemory";
 import { OpenAIChat } from "../../LLMs/OpenAIChat";
 

@@ -11,10 +11,10 @@
  */
 
 import { Agent } from "../../agents/Agent";
-import { AgentTeam } from "../../multi-agent/AgentTeam";
+import { AgentTeam } from "../../agents/multi-agent/AgentTeam";
 import { ShortTermMemory } from "../../memory/ShortTermMemory";
 import { OpenAIChat } from "../../LLMs/OpenAIChat";
-import { TeamHooks } from "../../multi-agent/AgentTeam";
+import { TeamHooks } from "../../agents/multi-agent/AgentTeam";
 
 // Extend AgentTeam for the sake of having a custom class
 class SafeAgentTeam extends AgentTeam {

@@ -1,10 +1,10 @@
 // src/multi-agent/AdvancedAgentTeam.ts
 
-import { Agent } from "../agents/Agent";
+import { Agent } from "../Agent";
 import { TeamHooks } from "./AgentTeam";
-import { Memory } from "../memory/Memory";
+import { Memory } from "../../memory/Memory";
 import { AgentTeam } from "./AgentTeam";
-import { DebugLogger } from '../utils/DebugLogger';
+import { DebugLogger } from '../../utils/DebugLogger';
 
 /**
  * AdvancedTeamHooks extends the basic TeamHooks with:
@@ -43,6 +43,7 @@ export interface AgentContribution {
   agent: Agent;
   content: string;
   hasFinalAnswer: boolean;
+  timestamp?: number;
 }
 
 /**
@@ -68,6 +69,7 @@ export class AdvancedAgentTeam extends AgentTeam {
   private sharedMemory?: Memory;
   private logger: DebugLogger;
   private teamConfig?: TeamConfiguration;
+  private hooks?: AdvancedTeamHooks;
 
   constructor(
     name: string,
@@ -77,6 +79,7 @@ export class AdvancedAgentTeam extends AgentTeam {
     super(name, agents);
     this.sharedMemory = options.sharedMemory;
     this.teamConfig = options.teamConfig;
+    this.hooks = options.hooks;
     this.logger = new DebugLogger(options.debug ?? false);
   }
 
@@ -217,102 +220,6 @@ export class AdvancedAgentTeam extends AgentTeam {
   }
 
   /**
-   * Interleaved/Chat-like approach where agents build on each other's contributions
-   */
-  public async runInterleaved(
-        userQuery: string,
-        maxRounds: number,
-        isConverged: (lastMsg: string) => boolean,
-        requireAllAgents: boolean = false
-    ): Promise<string> {
-        if (requireAllAgents) {
-            this.logger.log("requireAllAgents is true. Waiting for all agents to contribute.");
-            this.logger.log(`Total agents: ${this.agents.length}\n`);
-        }
-
-        this.logger.log("Starting interleaved team workflow", {
-            query: userQuery,
-            maxRounds,
-            requireAllAgents,
-            teamSize: this.agents.length
-        });
-
-        // Track contributions per round
-        const contributions = new Map<string, AgentContribution>();
-        let currentRound = 0;
-        let finalAnswer: string | null = null;
-
-        // Initialize shared memory if enabled
-        this.initializeSharedContext(userQuery);
-
-        // Main interaction loop
-        while (currentRound < maxRounds) {
-            currentRound++;
-            this.logger.log(`Starting round ${currentRound}/${maxRounds}`);
-            
-            // Each agent takes a turn in the current round
-            for (const agent of this.agents) {
-                this.logger.log(`Round ${currentRound}: ${agent.name}'s turn`);
-
-                // Get agent's specialized query based on their role
-                const agentQuery = this.getSpecializedQuery(agent, userQuery);
-                
-                try {
-                    const agentOutput = await agent.run(agentQuery);
-                    this.logger.log(`${agent.name} response received`, { agentOutput });
-
-                    // Check if this output meets convergence criteria
-                    const hasConverged = isConverged(agentOutput);
-
-                    // Track agent contribution with metadata
-                    this.trackContribution(agent, agentOutput, hasConverged);
-
-                    // Check convergence conditions
-                    if (hasConverged) {
-                        if (!requireAllAgents) {
-                            // Stop at first convergence if not requiring all agents
-                            finalAnswer = agentOutput;
-                            this.logger.log(`${agent.name} met convergence criteria, stopping early`);
-                            break;
-                        } else if (this.haveAllAgentsContributed(contributions)) {
-                            // Stop if all agents have contributed and at least one converged
-                            finalAnswer = this.combineContributions(contributions);
-                            this.logger.log("All agents have contributed and convergence reached");
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    this.logger.error(`Error during ${agent.name}'s turn`, error);
-                    contributions.set(agent.name, {
-                        agent,
-                        content: `Error during execution: ${(error as Error).message}`,
-                        hasFinalAnswer: false
-                    });
-                }
-            }
-
-            // Break if we found a final answer
-            if (finalAnswer) {
-                this.logger.log("Convergence achieved", { finalAnswer });
-                break;
-            }
-
-            // Check if we should continue
-            if (currentRound === maxRounds) {
-                this.logger.warn(`Maximum rounds (${maxRounds}) reached without convergence`);
-            }
-        }
-
-        // If no final answer was reached, combine all contributions
-        if (!finalAnswer) {
-            this.logger.warn("No convergence reached, combining all contributions");
-            finalAnswer = this.combineContributions(contributions);
-        }
-
-        return this.formatFinalOutput(finalAnswer, contributions);
-    }
-
-  /**
    * Check if all agents have contributed
    */
   private haveAllAgentsContributed(
@@ -322,12 +229,181 @@ export class AdvancedAgentTeam extends AgentTeam {
   }
 
   /**
+   * Check if all agents have contributed AND converged
+   */
+  private haveAllAgentsConverged(
+    contributions: Map<string, AgentContribution>
+  ): boolean {
+    if (!this.haveAllAgentsContributed(contributions)) {
+      return false;
+    }
+    
+    // Check if all contributions have converged
+    const allConverged = Array.from(contributions.values())
+      .every(contribution => contribution.hasFinalAnswer);
+
+    this.logger.log("Checking convergence status", {
+      totalAgents: this.agents.length,
+      contributingAgents: contributions.size,
+      allConverged,
+      convergenceStatus: Array.from(contributions.entries()).map(([name, c]) => ({
+        agent: name,
+        hasConverged: c.hasFinalAnswer
+      }))
+    });
+
+    return allConverged;
+  }
+
+  /**
+   * Interleaved/Chat-like approach where agents build on each other's contributions
+   */
+  public async runInterleaved(
+    userQuery: string,
+    maxRounds: number,
+    isConverged: (lastMsg: string) => Promise<boolean> | boolean,
+    requireAllAgents: boolean = false
+  ): Promise<string> {
+    if (requireAllAgents) {
+      this.logger.log("requireAllAgents is true. Waiting for all agents to contribute.");
+      this.logger.log(`Total agents: ${this.agents.length}\n`);
+    }
+
+    this.logger.log("Starting interleaved team workflow", {
+      query: userQuery,
+      maxRounds,
+      requireAllAgents,
+      teamSize: this.agents.length
+    });
+
+    // Track contributions per round
+    const contributions = new Map<string, AgentContribution>();
+    let currentRound = 0;
+    let finalAnswer: string | null = null;
+
+    // Initialize shared memory if enabled
+    await this.initializeSharedContext(userQuery);
+
+    // Main interaction loop
+    while (currentRound < maxRounds) {
+      currentRound++;
+      this.logger.log(`Starting round ${currentRound}/${maxRounds}`);
+      
+      if (this.hooks?.onRoundStart) {
+        this.hooks.onRoundStart(currentRound, maxRounds);
+      }
+
+      // Each agent takes a turn in the current round
+      for (const agent of this.agents) {
+        this.logger.log(`Round ${currentRound}: ${agent.name}'s turn`);
+
+        if (this.hooks?.onAgentStart) {
+          this.hooks.onAgentStart(agent.name, userQuery);
+        }
+
+        // Get agent's specialized query based on their role
+        const agentQuery = this.getSpecializedQuery(agent, userQuery);
+        
+        try {
+          const agentOutput = await agent.run(agentQuery);
+          this.logger.log(`${agent.name} response received`, { agentOutput });
+
+          // Check if this output meets convergence criteria
+          const hasConverged = await Promise.resolve(isConverged(agentOutput));
+
+          // Track agent contribution with metadata
+          contributions.set(agent.name, {
+            agent,
+            content: agentOutput,
+            hasFinalAnswer: hasConverged,
+            timestamp: Date.now()
+          });
+
+          this.trackContribution(agent, agentOutput, hasConverged);
+
+          if (this.hooks?.onAgentEnd) {
+            this.hooks.onAgentEnd(agent.name, agentOutput);
+          }
+
+          // Check convergence conditions
+          if (hasConverged) {
+            if (this.hooks?.onConvergence) {
+              this.hooks.onConvergence(agent, agentOutput);
+            }
+
+            if (!requireAllAgents) {
+              // Stop at first convergence if not requiring all agents
+              finalAnswer = agentOutput;
+              this.logger.log(`${agent.name} met convergence criteria, stopping early`);
+              break;
+            } else if (this.haveAllAgentsConverged(contributions)) {
+              // Stop only if all agents have contributed AND converged
+              finalAnswer = this.combineContributions(contributions);
+              this.logger.log("All agents have contributed and converged");
+              break;
+            }
+          }
+        } catch (error) {
+          this.logger.error(`Error during ${agent.name}'s turn`, error);
+          if (this.hooks?.onError) {
+            this.hooks.onError(agent.name, error as Error);
+          }
+
+          contributions.set(agent.name, {
+            agent,
+            content: `Error during execution: ${(error as Error).message}`,
+            hasFinalAnswer: false,
+            timestamp: Date.now()
+          });
+        }
+      }
+
+      if (this.hooks?.onRoundEnd) {
+        this.hooks.onRoundEnd(currentRound, contributions);
+      }
+
+      // Break if we found a final answer
+      if (finalAnswer) {
+        this.logger.log("Convergence achieved", { finalAnswer });
+        break;
+      }
+
+      // If all agents have contributed but not all converged, log and continue
+      if (this.haveAllAgentsContributed(contributions) && 
+          !this.haveAllAgentsConverged(contributions)) {
+        this.logger.log("All agents contributed but not all converged, continuing to next round");
+        continue;
+      }
+
+      // Check if we should continue
+      if (currentRound === maxRounds) {
+        this.logger.warn(`Maximum rounds (${maxRounds}) reached without convergence`);
+      }
+    }
+
+    // If no final answer was reached, combine all contributions
+    if (!finalAnswer) {
+      this.logger.warn("No convergence reached, combining all contributions");
+      finalAnswer = this.combineContributions(contributions);
+    }
+
+    const formattedOutput = this.formatFinalOutput(finalAnswer, contributions);
+
+    if (this.hooks?.onAggregation) {
+      this.hooks.onAggregation(formattedOutput);
+    }
+
+    return formattedOutput;
+  }
+
+  /**
    * Combine all agent contributions into a final response
    */
   private combineContributions(
     contributions: Map<string, AgentContribution>
   ): string {
     return Array.from(contributions.values())
+      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)) // Sort by timestamp if available
       .map(c => {
         const role = this.getAgentRole(c.agent);
         const roleInfo = role ? ` (${role.name})` : '';
@@ -343,7 +419,10 @@ export class AdvancedAgentTeam extends AgentTeam {
     finalAnswer: string,
     contributions: Map<string, AgentContribution>
   ): string {
-    const contributingAgents = Array.from(contributions.keys()).join(", ");
+    const contributingAgents = Array.from(contributions.entries())
+      .map(([name, c]) => `${name}${c.hasFinalAnswer ? ' ✓' : ''}`)
+      .join(", ");
+
     const header = `Team Response (Contributors: ${contributingAgents})\n${"=".repeat(40)}\n`;
     return `${header}${finalAnswer}`;
   }

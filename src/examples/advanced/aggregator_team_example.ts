@@ -1,6 +1,6 @@
 // src/examples/advanced/aggregator_team_example.ts
 
-import { AgentTeam } from "../../multi-agent/AgentTeam";
+import { AgentTeam } from "../../agents/multi-agent/AgentTeam";
 import { Agent } from "../../agents/Agent";
 
 export class AggregatorAgentTeam extends AgentTeam {

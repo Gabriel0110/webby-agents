@@ -1,6 +1,6 @@
 // src/multi-agent/AgentTeam.ts
 
-import { Agent } from "../agents/Agent";
+import { Agent } from "../Agent";
 
 export interface TeamHooks {
     onAgentStart?: (agentName: string, input: string) => void;

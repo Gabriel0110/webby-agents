@@ -1,8 +1,8 @@
 // src/examples/advanced/agent_subteam_routing.ts
 
 import { Agent } from "../../agents/Agent";
-import { AgentTeam } from "../../multi-agent/AgentTeam";
-import { AgentRouter } from "../../multi-agent/AgentRouter";
+import { AgentTeam } from "../../agents/multi-agent/AgentTeam";
+import { AgentRouter } from "../../agents/multi-agent/AgentRouter";
 import { ShortTermMemory } from "../../memory/ShortTermMemory";
 import { OpenAIChat } from "../../LLMs/OpenAIChat";
 

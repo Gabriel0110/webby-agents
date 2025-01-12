@@ -1,9 +1,9 @@
 // src/multi-agent/AdvancedAgentRouter.ts
 
-import { Agent } from "../agents/Agent";
+import { Agent } from "../Agent";
 import { AgentRouter } from "./AgentRouter";
-import { OpenAIChat } from "../LLMs/OpenAIChat";
-import { DebugLogger } from "../utils/DebugLogger";
+import { OpenAIChat } from "../../LLMs/OpenAIChat";
+import { DebugLogger } from "../../utils/DebugLogger";
 
 /**
  * Agent capability metadata

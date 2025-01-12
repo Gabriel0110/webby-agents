@@ -4,9 +4,9 @@ export * from "./Workflow";
 export * from "./Planner";
 
 // Exports for multi-agent
-export * from "./multi-agent/AgentTeam";
-export * from "./multi-agent/AgentRouter";
-export * from "./multi-agent/AdvancedAgentTeam";
+export * from "./agents/multi-agent/AgentTeam";
+export * from "./agents/multi-agent/AgentRouter";
+export * from "./agents/multi-agent/AdvancedAgentTeam";
 
 // Exports for memory
 export * from "./memory/Memory";

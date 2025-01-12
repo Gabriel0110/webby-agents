@@ -1,6 +1,6 @@
 // src/multi-agent/AgentRouter.ts
 
-import { Agent } from "../agents/Agent";
+import { Agent } from "../Agent";
 
 /**
  * A simple interface for how we decide which Agent to call for a user query.
