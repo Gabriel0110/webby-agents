@@ -38,6 +38,6 @@ export class CompositeMemory implements Memory {
   }
 
   private sortByTimestamp(messages: ConversationMessage[]): ConversationMessage[] {
-    return messages.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+    return messages.sort((a, b) => (a.metadata?.timestamp ?? 0) - (b.metadata?.timestamp ?? 0));
   }
 }

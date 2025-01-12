@@ -34,7 +34,7 @@ export class LongTermMemory implements Memory {
       embedding,
       metadata: {
         role: message.role,
-        timestamp: message.timestamp
+        timestamp: Date.now(),
       }
     });
 

@@ -14,7 +14,7 @@ import { DebugLogger } from '../utils/DebugLogger';
  */
 export interface AgentOptions {
   maxSteps?: number;       // Max reflection steps (-1 for unlimited).
-  usageLimit?: number;     // Max LLM calls
+  usageLimit?: number;     // Max LLM calls (-1 for unlimited).
   useReflection?: boolean; // If no tools, can skip reflection
   timeToLive?: number;     // In ms, -1 to disable
   debug?: boolean;         // If true, logs more info
@@ -91,8 +91,8 @@ export class Agent {
     this.hooks = hooks ?? {};
 
     // Options
-    this.maxSteps = options?.maxSteps ?? 5;
-    this.usageLimit = options?.usageLimit ?? 5;
+    this.maxSteps = options?.maxSteps ?? 15;
+    this.usageLimit = options?.usageLimit ?? 15;
     this.timeToLive = options?.timeToLive ?? 60000;
     this.debug = options?.debug ?? false;
     this.logger = new DebugLogger(this.debug);
@@ -373,7 +373,7 @@ export class Agent {
    */
   private shouldStop(elapsed: number): boolean {
     if (this.maxSteps !== -1 && this.stepCount >= this.maxSteps) return true;
-    if (this.llmCallsUsed >= this.usageLimit) return true;
+    if (this.usageLimit !== -1 && this.llmCallsUsed >= this.usageLimit) return true;
     if (this.timeToLive !== -1 && elapsed >= this.timeToLive) return true;
     return false;
   }

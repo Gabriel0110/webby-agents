@@ -1,4 +1,4 @@
-// src/examples/agent_subteam_routing.ts
+// src/examples/advanced/agent_subteam_routing.ts
 
 import { Agent } from "../../agents/Agent";
 import { AgentTeam } from "../../multi-agent/AgentTeam";

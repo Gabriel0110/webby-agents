@@ -6,7 +6,7 @@ export type MemoryRole = "system" | "user" | "assistant" | "reflection";
 export interface ConversationMessage {
   role: MemoryRole;
   content: string;
-  timestamp?: number;
+  metadata?: any;
 }
 
 /**

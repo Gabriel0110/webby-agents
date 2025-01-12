@@ -1,5 +1,5 @@
 /**
- * agent_team_safe_example.ts
+ * src/examples/advanced/agent_team_safe_example.ts
  *
  * Demonstrates how to use "safe" multi-agent orchestration functions
  * (like runSequentialSafe) with different error-handling strategies.

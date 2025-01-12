@@ -1,4 +1,4 @@
-// aggregator_team_example.ts
+// src/examples/advanced/aggregator_team_example.ts
 
 import { AgentTeam } from "../../multi-agent/AgentTeam";
 import { Agent } from "../../agents/Agent";

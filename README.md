@@ -143,7 +143,7 @@ main().catch(console.error);
 
 ### 2) **Workflow Example (Fixed Steps)**
 
-**Goal**: Demonstrate a fixed-step approach using the `Workflow` class, which is simpler than a fully autonomous agent for known tasks.
+**Goal**: Demonstrate a fixed-step approach using the `Workflow` class, which is simpler than an agent for known tasks.
 
 ```ts
 import { Workflow, LLMCallStep } from "webby-agents";
@@ -520,10 +520,10 @@ main().catch(console.error);
 
 | Option         | Default   | Description                                                                     |
 |----------------|-----------|---------------------------------------------------------------------------------|
-| **`maxSteps`** | `5`       | Max reflection steps in the reasoning loop (`-1` = unlimited).                   |
-| **`usageLimit`** | `5`     | Maximum total LLM calls (cost control).                                         |
-| **`useReflection`** | `true` | If `false`, a single pass only. Tools require reflection to see their results. |
-| **`timeToLive`** | `60000` | (ms) Halts the agent if it runs too long. `-1` = no limit.                       |
+| **`maxSteps`** | `15`       | Max reflection steps in the reasoning loop (`-1` = unlimited).                 |
+| **`usageLimit`** | `15`     | Maximum total LLM calls (cost control) (`-1` = unlimited)                      |
+| **`useReflection`** | `true` | If `false`, a single pass only. Tools require reflection to see their results.|
+| **`timeToLive`** | `60000` | (ms) Halts the agent if it runs too long. (`-1` = unlimited).                   |
 | **`debug`** | `false`     | More logs about each step and the final plan.                                    |
 
 ---
@@ -876,8 +876,9 @@ class AggregatorAgentTeam extends AgentTeam {
 
 ---
 
-## Additional Recommendations
+## Additional Recommendations & Thoughts
 
+- **Agent Performance & Prompting**: Agentic systems are all about the prompts. They will only work as well as the prompts you provide. Ensure they are clear, concise, and tailored to the task at hand for every use case. There are many guides on prompting LLMs effectively, and I would advise reading them.
 - **Security / Tools**: If you use “write actions” or potentially destructive tools, ensure you have human approval hooks or environment isolation (sandboxing).  
 - **Chain-of-thought Safety**: If reflection memory is fed back into the final prompt or user response, carefully ensure it does not leak internal reasoning to the user if that is not desired.  
 - **External Vector DB**: For production scale retrieval, integrate with an actual vector database instead of in-memory stores.  
