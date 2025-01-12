@@ -69,7 +69,7 @@ export class AdvancedAgentRouter extends AgentRouter {
 
     if (options.useLLM) {
       this.routerLLM = new OpenAIChat({
-        apiKey: "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",
+        apiKey: "YOUR-API-KEY",
         model: "gpt-4o-mini",
         temperature: 0.2, // Lower temperature for more consistent routing
       });
