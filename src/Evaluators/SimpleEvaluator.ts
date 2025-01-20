@@ -51,7 +51,7 @@ export class SimpleEvaluator {
 Please provide:
 1. A numeric score (0-1) assessing the quality and relevance of the response.
 2. Detailed feedback about what the response did well or poorly.
-3. Suggestions for improvements.
+3. Suggestions for improvements, if any. If no improvements are needed, leave the field blank.
 
 Structure your response as follows:
 Score: <numeric value>
