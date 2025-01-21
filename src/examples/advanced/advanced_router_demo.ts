@@ -93,7 +93,7 @@ async function main() {
       useLLM: true, // LLM-powered routing
       debug: true,
       fallbackIndex: 2, // General agent as fallback
-      confidenceThreshold: 0.7 // Minimum confidence for routing
+      confidenceThreshold: 0.8 // Minimum confidence for routing
     }
   );
 

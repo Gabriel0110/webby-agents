@@ -11,68 +11,27 @@ import { DebugLogger } from "../utils/DebugLogger";
  * Options to configure agent behavior and safety checks.
  */
 export interface AgentOptions {
-  /**
-   * The maximum number of “reasoning” or “reflection” steps in the main loop.
-   * If set to -1, there is no cap on steps (use with caution).
-   */
   maxSteps?: number;
-
-  /**
-   * The maximum number of LLM calls allowed during a single agent.run() call.
-   * If set to -1, there's no limit (use with caution).
-   */
   usageLimit?: number;
-
-  /**
-   * Whether to enable multi-step reflection.
-   * If false, the agent does a single pass (no loop).
-   */
   useReflection?: boolean;
-
-  /**
-   * A time-to-live (in ms). If the agent runs longer than this, it stops.
-   * -1 means no time limit.
-   */
   timeToLive?: number;
+  debug?: boolean;
 
   /**
-   * If true, logs debug info and statuses. Otherwise, silent.
+   * If true, we will attempt to validate the final output with a validator LLM.
    */
-  debug?: boolean;
+  validateOutput?: boolean;
 }
 
 /**
  * Lifecycle hooks for debugging or advanced usage.
  */
 export interface AgentHooks {
-  /**
-   * Called when a planner produces a plan (in JSON or text).
-   */
   onPlanGenerated?: (plan: string) => void;
-
-  /**
-   * Called right before a tool is used. Return false to cancel usage.
-   */
   onToolCall?: (toolName: string, query: string) => Promise<boolean> | boolean;
-
-  /**
-   * Called if tool parameter validation fails.
-   */
   onToolValidationError?: (toolName: string, errorMsg: string) => void;
-
-  /**
-   * Called after a tool successfully executes, with the tool’s result.
-   */
   onToolResult?: (toolName: string, result: string) => void;
-
-  /**
-   * Called when a final answer is found and returned.
-   */
   onFinalAnswer?: (answer: string) => void;
-
-  /**
-   * Called after each iteration (or step) to observe memory messages or agent state.
-   */
   onStep?: (messages: ConversationMessage[]) => void;
 }
 
@@ -98,12 +57,19 @@ export class Agent {
   protected debug: boolean;
 
   // Internal counters/timers
-  protected llmCallsUsed = 0;       // how many times we've called the LLM
-  private startTime: number = 0;    // when run() started
-  private stepCount: number = 0;    // how many reflection steps so far
+  protected llmCallsUsed = 0;
+  private startTime: number = 0;
+  private stepCount: number = 0;
 
   // Hooks
   protected hooks: AgentHooks;
+
+  // The user’s or developer’s stated “task” for validation context
+  protected task?: string;
+
+  // If validateOutput === true, we optionally have a separate validation model
+  protected validateOutput: boolean;
+  protected validationModel?: OpenAIChat;
 
   constructor(params: {
     name?: string;
@@ -111,9 +77,13 @@ export class Agent {
     memory: Memory;
     tools?: Tool[];
     instructions?: string[];
+
     planner?: Planner;
     options?: AgentOptions;
     hooks?: AgentHooks;
+
+    task?: string;
+    validationModel?: OpenAIChat;
   }) {
     const {
       name,
@@ -124,9 +94,10 @@ export class Agent {
       planner,
       options,
       hooks,
+      task,
+      validationModel,
     } = params;
 
-    // Basic fields
     this.name = name ?? "UnnamedAgent";
     this.model = model;
     this.memory = memory;
@@ -135,20 +106,22 @@ export class Agent {
     this.planner = planner;
     this.hooks = hooks ?? {};
 
+    this.task = task;
+    this.validationModel = validationModel;
+
     // Options
     this.maxSteps = options?.maxSteps ?? 15;
     this.usageLimit = options?.usageLimit ?? 15;
     this.timeToLive = options?.timeToLive ?? 60000;
     this.debug = options?.debug ?? false;
     this.logger = new DebugLogger(this.debug);
+    this.validateOutput = options?.validateOutput ?? false;
 
     // Reflection toggling
     if (tools.length > 0) {
       this.useReflection = true;
       if (options?.useReflection === false) {
-        this.logger.warn(
-          `[Agent] Tools were provided, forcing useReflection to true.`
-        );
+        this.logger.warn(`[Agent] Tools were provided, forcing useReflection to true.`);
       }
     } else {
       this.useReflection = options?.useReflection ?? true;
@@ -167,13 +140,14 @@ export class Agent {
     planner?: Planner;
     options?: AgentOptions;
     hooks?: AgentHooks;
+    task?: string;
+    validationModel?: OpenAIChat;
   }): Agent {
     return new Agent(params);
   }
 
   /**
-   * The main entry point for the agent. 
-   * If reflection is disabled, does a single pass. Otherwise, loops until a final answer is found.
+   * The main entry point for the agent.
    */
   public async run(query: string): Promise<string> {
     this.startTime = Date.now();
@@ -181,26 +155,26 @@ export class Agent {
 
     this.logger.log(`[Agent:${this.name}] Starting run`, { query });
 
-    // Initialize conversation with system prompt & user query
+    // Initialize conversation
     await this.memory.addMessage({
       role: "system",
       content: this.buildSystemPrompt(),
     });
     await this.memory.addMessage({ role: "user", content: query });
 
-    // If reflection is disabled, do a single pass
+    // Single-pass if reflection is off
     if (!this.useReflection) {
       return await this.singlePass();
     }
 
-    // If a planner is specified, we can do a plan-then-execute approach
+    // If planner is specified
     if (this.planner) {
       return await this.executePlannerFlow(query);
     }
 
-    // Otherwise, do the default reflection loop
+    // Default reflection loop
     while (true) {
-      // Check usage/time limits
+      // Check usage/time
       const elapsed = Date.now() - this.startTime;
       this.logger.stats({
         llmCallsUsed: this.llmCallsUsed,
@@ -218,35 +192,36 @@ export class Agent {
       this.llmCallsUsed++;
       this.stepCount++;
 
-      // Gather the current context from memory
       const context = await this.memory.getContextForPrompt(query);
-
-      // LLM call
       const llmOutput = await this.model.call(context);
       this.logger.log(`[Agent:${this.name}] LLM Output:`, { llmOutput });
 
-      // Check for tool usage
+      // Tool usage?
       const toolRequest = ToolRequestParser.parse(llmOutput);
       if (toolRequest) {
         const result = await this.handleToolRequest(toolRequest);
-        // Add the tool result to memory so the agent can see it next iteration
-        await this.memory.addMessage({
-          role: "assistant",
-          content: `Tool result:\n${result}`,
-        });
-        // Continue the loop so the agent sees the new tool result in memory
-        continue;
+        await this.memory.addMessage({ role: "assistant", content: `Tool result:\n${result}` });
+        continue; // Next iteration
       }
 
-      // Check for final answer
+      // Final answer check
       if (llmOutput.startsWith("FINAL ANSWER:")) {
         const finalAns = llmOutput.replace("FINAL ANSWER:", "").trim();
         this.logger.log(`[Agent:${this.name}] Final answer found`, { finalAns });
 
-        await this.memory.addMessage({
-          role: "assistant",
-          content: llmOutput,
-        });
+        // Add final answer to memory
+        await this.memory.addMessage({ role: "assistant", content: llmOutput });
+
+        // If validateOutput is true, attempt validation
+        if (this.validateOutput && this.validationModel) {
+          const validated = await this.validateFinalAnswer(finalAns);
+          if (!validated) {
+            this.logger.log(`[Agent:${this.name}] Validation failed. Continuing loop to refine...`);
+            // We can either continue the loop or forcibly revise the answer
+            // We'll continue the loop here:
+            continue;
+          }
+        }
 
         if (this.hooks.onFinalAnswer) {
           await this.hooks.onFinalAnswer(finalAns);
@@ -254,27 +229,30 @@ export class Agent {
         return finalAns;
       }
 
-      // If the output is neither a tool request nor a final answer,
-      // treat it as an intermediate message (reasoning or partial answer).
+      // Otherwise, treat as intermediate output
       await this.memory.addMessage({ role: "assistant", content: llmOutput });
-
-      // Optional: If you want to treat any leftover output as a final answer, you could:
-      // return llmOutput;
-      // But we choose to loop until we see a "FINAL ANSWER:" or a stop condition.
     }
   }
 
   /**
-   * Single pass execution without multi-step reflection.
+   * Single pass execution without reflection
    */
   protected async singlePass(): Promise<string> {
     if (this.llmCallsUsed >= this.usageLimit && this.usageLimit !== -1) {
       return "Usage limit reached. No more LLM calls allowed.";
     }
-
     this.llmCallsUsed++;
     const singleResponse = await this.model.call(await this.memory.getContext());
     await this.memory.addMessage({ role: "assistant", content: singleResponse });
+
+    // If final answer, optionally validate
+    if (this.validateOutput && this.validationModel) {
+      const validated = await this.validateFinalAnswer(singleResponse);
+      if (!validated) {
+        // If single-pass and fails validation, we just return it anyway, or we can override
+        this.logger.log(`[Agent:${this.name}] Single pass validation failed. Returning anyway.`);
+      }
+    }
 
     if (this.hooks.onFinalAnswer) {
       this.hooks.onFinalAnswer(singleResponse);
@@ -283,30 +261,38 @@ export class Agent {
   }
 
   /**
-   * A simpler, plan-then-execute approach if a planner is provided.
+   * Plan-then-execute approach if a planner is provided
    */
   private async executePlannerFlow(query: string): Promise<string> {
     if (!this.planner) {
       return "No planner specified.";
     }
-    // Generate a plan
     const plan = await this.planner.generatePlan(query, this.tools, this.memory);
-
     if (this.hooks.onPlanGenerated) {
       this.hooks.onPlanGenerated(plan);
     }
 
-    // Parse the plan
     const steps = this.parsePlan(plan);
     for (const step of steps) {
       const stepResponse = await this.executePlanStep(step, query);
-
-      // Add step result to memory
       await this.memory.addMessage({ role: "assistant", content: stepResponse });
 
-      // Check for final answer
       if (stepResponse.includes("FINAL ANSWER")) {
-        return stepResponse.replace("FINAL ANSWER:", "").trim();
+        // Extract the final answer string
+        const finalAnswer = stepResponse.replace("FINAL ANSWER:", "").trim();
+
+        // Validate if required
+        if (this.validateOutput && this.validationModel) {
+          const pass = await this.validateFinalAnswer(finalAnswer);
+          if (!pass) {
+            this.logger.log(
+              `[Agent:${this.name}] Validation failed in planner flow. Possibly continue or refine?`
+            );
+            // Could do more refinement or just return
+          }
+        }
+
+        return finalAnswer;
       }
     }
 
@@ -314,7 +300,7 @@ export class Agent {
   }
 
   /**
-   * Build the system prompt, enumerating tools and usage instructions, plus user instructions.
+   * Build the system prompt, enumerating tools etc.
    */
   protected buildSystemPrompt(): string {
     const toolLines = this.tools
@@ -340,9 +326,6 @@ export class Agent {
     return lines.join("\n\n");
   }
 
-  /**
-   * Parse the plan produced by a planner into an array of { action, details }.
-   */
   protected parsePlan(plan: string): Array<{ action: string; details: string }> {
     try {
       return JSON.parse(plan);
@@ -351,10 +334,6 @@ export class Agent {
     }
   }
 
-  /**
-   * Executes a single plan step. 
-   * Example plan steps: { action: "tool", details: "SomeTool" }, { action: "message", details: "Hello" }, { action: "complete", details: "FINAL ANSWER" }
-   */
   protected async executePlanStep(
     step: { action: string; details: string },
     query: string
@@ -365,28 +344,17 @@ export class Agent {
         if (!tool) {
           return `Error: Tool "${step.details}" not found.`;
         }
-        // Provide the entire query as input for now, or step.details as the query
-        // Possibly parse sub-steps or arguments
         return await tool.run(query);
       }
-
       case "message":
-        // Could treat step.details as user or system text
         return await this.model.call([{ role: "user", content: step.details }]);
-
       case "complete":
-        // If the plan says to complete with a final answer
         return `FINAL ANSWER: ${step.details}`;
-
       default:
         return `Unknown action: ${step.action}`;
     }
   }
 
-  /**
-   * Called whenever the LLM output contains a tool request. 
-   * Validates, obtains user approval (if any), and runs the tool.
-   */
   protected async handleToolRequest(request: ParsedToolRequest): Promise<string> {
     this.logger.log("Processing tool request", request);
 
@@ -405,7 +373,6 @@ export class Agent {
 
       ToolRequestParser.validateParameters(tool, request);
 
-      // Hook for user approval
       if (this.hooks.onToolCall) {
         const proceed = await this.hooks.onToolCall(tool.name, request.query);
         if (!proceed) {
@@ -414,19 +381,16 @@ export class Agent {
         }
       }
 
-      // Run the tool
       const result = request.args
         ? await tool.run("", request.args)
         : await tool.run(request.query);
 
       this.logger.log("Tool execution result", { toolName: tool.name, result });
 
-      // Optional post-result hook
       if (this.hooks.onToolResult) {
         await this.hooks.onToolResult(tool.name, result);
       }
 
-      // Return the tool result to be integrated into memory
       return result;
     } catch (err) {
       const errorMsg = (err as Error).message;
@@ -436,7 +400,7 @@ export class Agent {
   }
 
   /**
-   * Checks if we have exceeded steps, usage limits, or time limit.
+   * Called each iteration to see if we should stop for usage/time reasons
    */
   private shouldStop(elapsed: number): boolean {
     if (this.maxSteps !== -1 && this.stepCount >= this.maxSteps) return true;
@@ -445,9 +409,6 @@ export class Agent {
     return false;
   }
 
-  /**
-   * Returns the reason we are stopping.
-   */
   private getStoppingReason(elapsed: number): string {
     if (this.stepCount >= this.maxSteps) {
       return `Max steps (${this.maxSteps}) reached without final answer.`;
@@ -455,16 +416,12 @@ export class Agent {
     if (this.usageLimit !== -1 && this.llmCallsUsed >= this.usageLimit) {
       return `Usage limit (${this.usageLimit} calls) reached.`;
     }
-    if (this.timeToLive !== -1 && elapsed >= this.timeToLive) {
+    if (elapsed >= this.timeToLive) {
       return `Time limit (${this.timeToLive}ms) reached after ${elapsed}ms.`;
     }
     return "Unknown stopping condition reached.";
   }
 
-  /**
-   * If we want to store chain-of-thought style reflections, we can call this method.
-   * Only stored if memory is ReflectionMemory or a composite that includes reflection.
-   */
   protected async handleReflection(reflectionContent: string): Promise<void> {
     const reflectionMessage: ConversationMessage = {
       role: "reflection" as MemoryRole,
@@ -476,5 +433,50 @@ export class Agent {
     }
 
     this.logger.log(`Reflection stored: ${reflectionContent}`);
+  }
+
+  /**
+   * Validate final answer if validateOutput===true and we have a validationModel.
+   * If passes validation, returns true. If fails, returns false.
+   */
+  protected async validateFinalAnswer(finalAnswer: string): Promise<boolean> {
+    if (!this.validationModel) {
+      // No separate model, skip
+      return true;
+    }
+
+    const systemPrompt = `
+You are a validator that checks if an agent's final answer meets the user's task requirements.
+If the final answer is correct and satisfies the task, respond with a JSON:
+{"is_valid":true,"reason":"some short reason"}
+If it fails or is incomplete, respond with:
+{"is_valid":false,"reason":"some short reason"}
+
+User's task (if any): ${this.task ?? "(none provided)"}
+
+Agent's final answer to validate:
+${finalAnswer}
+    `;
+
+    const validatorOutput = await this.validationModel.call([
+      { role: "system", content: systemPrompt },
+    ]);
+
+    this.logger.log(`[Agent:${this.name}] Validator output:`, { validatorOutput });
+
+    // Attempt to parse
+    try {
+      const parsed = JSON.parse(validatorOutput);
+      if (parsed.is_valid === true) {
+        this.logger.log(`[Agent:${this.name}] Validation PASSED: ${parsed.reason}`);
+        return true;
+      } else {
+        this.logger.log(`[Agent:${this.name}] Validation FAILED: ${parsed.reason}`);
+        return false;
+      }
+    } catch (error) {
+      this.logger.warn(`[Agent:${this.name}] Could not parse validator output. Assuming fail.`, { validatorOutput });
+      return false;
+    }
   }
 }
