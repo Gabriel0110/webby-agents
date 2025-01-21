@@ -112,6 +112,7 @@ export class Agent {
     // Options
     this.maxSteps = options?.maxSteps ?? 15;
     this.usageLimit = options?.usageLimit ?? 15;
+    this.useReflection = options?.useReflection ?? true;
     this.timeToLive = options?.timeToLive ?? 60000;
     this.debug = options?.debug ?? false;
     this.logger = new DebugLogger(this.debug);
