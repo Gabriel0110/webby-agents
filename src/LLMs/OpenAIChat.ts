@@ -3,7 +3,7 @@ import axios from "axios";
 /**
  * Options for the OpenAIChat class:
  * - apiKey: your OpenAI API key
- * - model: which ChatCompletion model to use (e.g., "gpt-3.5-turbo")
+ * - model: which ChatCompletion model to use (e.g., "gpt-4o-mini")
  * - temperature: creativity setting
  * - stream: whether to use streaming
  * - onToken: callback for streaming tokens

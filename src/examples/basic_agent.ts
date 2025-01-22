@@ -7,7 +7,9 @@ async function main() {
   const chatModel = new OpenAIChat({
     apiKey: "YOUR-API-KEY",
     model: "gpt-4o-mini",
-    temperature: 0.5,
+    temperature: 0.7,
+    stream: true, // Stream output to console
+    onToken: (token) => process.stdout.write(token), // Hook to process tokens (basic example)
   });
 
   // 2) Create a simple short-term memory
@@ -33,7 +35,7 @@ async function main() {
   console.log("User Question:", userQuestion);
 
   const answer = await agent.run(userQuestion);
-  console.log("Agent's Final Answer:", answer);
+  console.log("\n\nAgent's Final Answer:", answer);
 }
 
 main().catch(console.error);
