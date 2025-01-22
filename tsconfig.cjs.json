@@ -1,0 +1,15 @@
+// tsconfig.cjs.json
+
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+      "module": "CommonJS",
+      "outDir": "dist/cjs",
+  
+      "declaration": false,
+      "declarationMap": false,
+  
+      "sourceMap": true
+    }
+  }
+  

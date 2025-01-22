@@ -15,6 +15,10 @@ tsconfig.*.json
 # Exclude Git-related files
 .gitignore
 
+# Exclude npm-related files
+.npmignore
+node_modules/
+
 # Exclude npm debug log files
 npm-debug.log*
 yarn-debug.log*
@@ -30,6 +34,7 @@ yarn.lock
 
 # Exclude other unnecessary files
 .DS_Store
+*.log
 
 # .tgz files
 *.tgz
