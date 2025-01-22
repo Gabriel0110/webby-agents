@@ -520,9 +520,7 @@ main().catch(console.error);
 **Goal**: Demonstrate how to specify a task for the agent and have the output validated by a validation model.
 
 ```ts
-import { Agent, AgentOptions } from "./Agent";
-import { ShortTermMemory } from "./memory/ShortTermMemory";
-import { OpenAIChat } from "./LLMs/OpenAIChat";
+import { Agent, AgentOptions, ShortTermMemory, OpenAIChat } from "webby-agents";
 
 async function runValidatedAgent() {
   // Optionally use different models or the same model for both the agent and validation
@@ -665,9 +663,9 @@ The **`Workflow`** class orchestrates how these steps are invoked:
 ### Example: A Simple Workflow
 
 ```ts
-import { Workflow, LLMCallStep } from "webby-agents";
-import { OpenAIChat } from "webby-agents";
-import { ShortTermMemory } from "webby-agents";
+import { Workflow, LLMCallStep } from "webby-agents/Workflow";
+import { OpenAIChat } from "webby-agents/LLMs";
+import { ShortTermMemory } from "webby-agents/memory";
 
 async function main() {
   // Create a model
@@ -760,11 +758,9 @@ A specialized `ReflectionMemory` allows the agent to store an internal “chain-
 
 **Example**  
 ```ts
-import { Agent } from "webby-agents";
-import { ShortTermMemory } from "webby-agents";
-import { ReflectionMemory } from "webby-agents/memory/ReflectionMemory";
-import { CompositeMemory } from "webby-agents/memory/CompositeMemory";
-import { OpenAIChat } from "webby-agents";
+import { Agent } from "webby-agents/agents";
+import { ShortTermMemory, CompositeMemory, ReflectionMemory } from "webby-agents/memory";
+import { OpenAIChat } from "webby-agents/LLMs";
 
 async function main() {
   const chatModel = new OpenAIChat({ apiKey: "YOUR_API_KEY", model: "gpt-4o-mini" });
@@ -825,10 +821,10 @@ When orchestrating multiple agents, you may want more robust error handling. For
 
 **Example**  
 ```ts
-import { AgentTeam } from "webby-agents/multi-agent/AgentTeam";
-import { Agent } from "webby-agents";
+import { AgentTeam } from "webby-agents/agents/multi-agent/AgentTeam";
+import { Agent } from "webby-agents/agents";
 import { ShortTermMemory } from "webby-agents/memory/ShortTermMemory";
-import { OpenAIChat } from "webby-agents";
+import { OpenAIChat } from "webby-agents/LLMs";
 
 // Suppose we extend AgentTeam to have runSequentialSafe:
 class SafeAgentTeam extends AgentTeam {
@@ -887,7 +883,7 @@ Your **AgentTeam** and **AgentRouter** can be extended for more collaborative or
 
 **Example**: Interleaved approach with a shared memory
 ```ts
-import { AdvancedAgentTeam } from "webby-agents/multi-agent/AdvancedAgentTeam";
+import { AdvancedAgentTeam } from "webby-agents/agents/multi-agent/AdvancedAgentTeam";
 // Suppose we have implemented an advanced class that extends AgentTeam
 // to run agents in a round-robin until we see "FINAL ANSWER"
 
