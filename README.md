@@ -54,7 +54,8 @@ A **simple and extensible** TypeScript/Node.js framework for building AI-powered
    - [RAG Demo (Long-Term Memory Retrieval)](#5-rag-demo-long-term-memory-retrieval)  
    - [Planner Example](#6-planner-example)  
    - [Evaluator Example](#7-evaluator-example)  
-   - [Agent with Logging Hooks](#8-agent-with-logging-hooks)  
+   - [Agent with Logging Hooks](#8-agent-with-logging-hooks) 
+   - [Agent Task Specification and Output Validation](#9-agent-task-specification-and-output-validation) 
 3. [Agent Options & Settings](#agent-options--settings)  
 4. [Memory](#memory)  
 5. [Models](#models)  
@@ -514,6 +515,52 @@ main().catch(console.error);
 
 ---
 
+### 9) **Agent Task Specification and Output Validation**
+
+**Goal**: Demonstrate how to specify a task for the agent and have the output validated by a validation model.
+
+```ts
+import { Agent, AgentOptions } from "./Agent";
+import { ShortTermMemory } from "./memory/ShortTermMemory";
+import { OpenAIChat } from "./LLMs/OpenAIChat";
+
+async function runValidatedAgent() {
+  // Optionally use different models or the same model for both the agent and validation
+  const mainModel = new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" });
+  const validatorModel = new OpenAIChat({ apiKey: "YOUR-API-KEY", model: "gpt-4o-mini" });
+
+  const memory = new ShortTermMemory(20);
+
+  const agentOptions: AgentOptions = {
+    validateOutput: true, // We want to validate agent responses
+    debug: true
+  };
+
+  const agent = Agent.create({
+    name: "ValidatorAgent",
+    model: mainModel,
+    validationModel: validatorModel,   // <--- Provide the validator
+    memory,
+    instructions: ["You are an agent that does simple math."],
+    task: "User wants the sum of two numbers",  // <--- Short example task specification
+    options: agentOptions,
+  });
+
+  const userQuery = "Add 2 and 2 for me, thanks!";
+  const finalAns = await agent.run(userQuery);
+  console.log("Final Answer from Agent:", finalAns);
+}
+
+main().catch(console.error);
+```
+
+**Key Observations**:
+- `validateOutput: true` tells the agent to validate its output.
+- The `task` field is a short description of the task the agent is expected to perform.
+- The `validationModel` is used to validate the agent's output.
+
+---
+
 ## Agent Options & Settings
 
 **`AgentOptions`** let you shape agent behavior:
@@ -525,6 +572,7 @@ main().catch(console.error);
 | **`useReflection`** | `true` | If `false`, a single pass only. Tools require reflection to see their results.|
 | **`timeToLive`** | `60000` | (ms) Halts the agent if it runs too long. (`-1` = unlimited).                   |
 | **`debug`** | `false`     | More logs about each step and the final plan.                                    |
+| **`validateOutput`** | `false` | If `true`, the agent validates its output with a second LLM.                |
 
 ---
 
@@ -567,6 +615,18 @@ Runs multiple Agents in **parallel** (`runInParallel`) or **sequential** (`runSe
 ### `AgentRouter`
 
 Uses a custom routing function to pick which agent handles a query.
+
+### `AdvancedAgentTeam`
+
+A more advanced version of `AgentTeam` that allows for more complex routing logic, hooks, and interleaved round-robin-style execution.
+
+### `AdvancedAgentRouter`
+
+A more advanced version of `AgentRouter` that allows for more complex routing logic, including LLM-based routing, agent capability specifications, and more.
+
+### `LLMConvergenceChecker`
+
+A custom convergence check for multi-agent orchestration that uses an LLM to decide if convergence has been reached. This can be useful for more complex multi-agent orchestration scenarios.
 
 ---
 
@@ -724,8 +784,7 @@ async function main() {
     memory: composite,
     instructions: [
       "You are a reflective agent; keep your chain-of-thought hidden from the user."
-    ],
-    options: { useReflection: true }
+    ]
   });
 
   // Add logic to store reflection after final answer or each step
@@ -921,6 +980,9 @@ npx ts-node src/examples/basic_agent.ts
 
 5. **Do I need to use an agent framework?**
    Absolutely not. Frameworks are just tools to assist in building more complex agents. You can use the LLMs directly with loops if you prefer.
+
+6. **Do I have to use everything in the library?**  
+   Nope. You can pick and choose the components you need. The library is designed to be modular and flexible. You can use the most basic agent implementation for basic agentic tasks, or you can use the more advanced features for more complex scenarios. You can even extend the library with your own custom components and features. The goal is to provide you with the ***options*** to build the agent you need for your desired use case. A lot of the advanced features are there to help you build more robust, more capable agents, but you don't have to use them if you don't need them.
 
 ---
 

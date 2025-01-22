@@ -54,6 +54,7 @@ export class Agent {
   protected usageLimit: number;
   protected useReflection: boolean;
   protected timeToLive: number;
+  protected validateOutput: boolean;
   protected debug: boolean;
 
   // Internal counters/timers
@@ -68,7 +69,6 @@ export class Agent {
   protected task?: string;
 
   // If validateOutput === true, we optionally have a separate validation model
-  protected validateOutput: boolean;
   protected validationModel?: OpenAIChat;
 
   constructor(params: {
