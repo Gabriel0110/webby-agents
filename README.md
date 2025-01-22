@@ -6,7 +6,7 @@
 
 # Webby-Agents Framework
 
-A **simple and extensible** TypeScript/Node.js framework for building AI-powered agents with memory, tool usage, and multi-step reasoning. This framework provides the core building blocks needed to integrate Large Language Models (LLMs) into your web applications and empower them with “agentic” capabilities. The goal is to provide simplicity but also customization and extensibility for more advanced use cases ***if you so desire***.
+A **simple and extensible** TypeScript/Node.js framework for building AI-powered web-native agents. This framework provides the core building blocks needed to integrate Large Language Models (LLMs) into your web applications and empower them with “agentic” capabilities. The goal is to provide simplicity but also customization and extensibility for more advanced use cases ***if you so desire***.
 
 > **Note**: The framework is **experimental** and still under **active** development and tuning. ***Use at your own risk***. Please report any issues you encounter, and feel free to contribute!
 
