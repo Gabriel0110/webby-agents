@@ -1,8 +1,8 @@
 ![Webby Agents](webby-agents.webp)
 
-[![GitHub stars](https://img.shields.io/github/stars/webby-agents/webby-agents?style=flat-square)](https://github.com/gabriel0110/webby-agents/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/webby-agents/webby-agents?style=flat-square)](https://github.com/gabriel0110/webby-agents/issues)
-[![GitHub license](https://img.shields.io/github/license/webby-agents/webby-agents?style=flat-square)](./LICENSE)  
+[![GitHub stars](https://img.shields.io/github/stars/gabriel0110/webby-agents?style=flat-square)](https://github.com/gabriel0110/webby-agents/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/gabriel0110/webby-agents?style=flat-square)](https://github.com/gabriel0110/webby-agents/issues)
+[![GitHub license](https://img.shields.io/github/license/gabriel0110/webby-agents?style=flat-square)](./LICENSE)  
 
 # Webby-Agents Framework
 
