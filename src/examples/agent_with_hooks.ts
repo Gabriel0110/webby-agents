@@ -46,7 +46,7 @@ async function main() {
     model,
     memory,
     tools: [mathTool],
-    instructions: ["Use DummyMath if the user needs a calculation."],
+    instructions: ['Use DummyMath if the user needs a calculation. Request it in the format "TOOL REQUEST: DummyMath {"num1": "123", "num2": "456"}'],
     hooks,
     options: {
       useReflection: true,

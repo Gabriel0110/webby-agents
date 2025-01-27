@@ -1,6 +1,6 @@
 {
   "name": "webby-agents",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A simple and modular TypeScript-powered agent framework designed for seamless web application integration. Simplify AI-powered tools, web searches, and automation with webby-agents.",
   
   "type": "commonjs",

@@ -15,24 +15,19 @@ export interface ParsedToolRequest {
 
 export class ToolRequestParser {
   /**
-   * We match the basic pattern: TOOL REQUEST: <ToolName> "<Query>"
-   * If you want named arguments or JSON, you can define more advanced patterns.
+   * We match either:
+   * 1. Simple pattern: TOOL REQUEST: <ToolName> "<Query>"
+   * 2. JSON pattern: TOOL REQUEST: <ToolName> {"key": "value"}
    */
   private static readonly SIMPLE_PATTERN = /^TOOL REQUEST:\s*(\w+)\s+"([^"]+)"$/i;
-
-  /**
-   * If the agent decides to pass JSON arguments, it might do something like:
-   * TOOL REQUEST: MyTool "{"param1":"value","param2":42}"
-   * We'll parse that JSON for structured param usage.
-   */
-  private static readonly JSON_PATTERN = /^TOOL REQUEST:\s*(\w+)\s+"(\{.*\})"$/is;
+  private static readonly JSON_PATTERN = /^TOOL REQUEST:\s*(\w+)\s+(\{.*\})$/is;
 
   /**
    * Attempt to parse a string into a ParsedToolRequest.
    * If we detect JSON, we parse the `args` object.
    */
   static parse(input: string): ParsedToolRequest | null {
-    // Check if it might contain JSON-like arguments
+    // First try JSON pattern
     const jsonMatch = input.match(this.JSON_PATTERN);
     if (jsonMatch) {
       try {
@@ -41,18 +36,18 @@ export class ToolRequestParser {
         const parsedArgs = JSON.parse(jsonString);
         return {
           toolName,
-          query: "", // Or you might store the entire JSON as query for fallback
+          query: JSON.stringify(parsedArgs), // Store full JSON as query
           args: parsedArgs
         };
       } catch (err) {
-        // If JSON parsing fails, fall back to simpler approach or return null
-        return null;
+        // If JSON parsing fails, continue to try simple pattern
       }
     }
 
-    // Otherwise, match the simpler pattern
+    // Try simple pattern
     const match = input.match(this.SIMPLE_PATTERN);
     if (!match) return null;
+    
     return {
       toolName: match[1],
       query: match[2]
